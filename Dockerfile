@@ -1,28 +1,31 @@
-# Use Debian slim for more reliable multi-arch builds under emulation
-FROM node:22-bookworm-slim
+FROM mirror-docker.runflare.com/library/node:22-bookworm-slim
 
-# Set working directory
-WORKDIR /src
+WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV="production"
+ENV PORT=80
 
-# Copy package*.json and .env dependencies
+# APT Mirror and disable SSL
+RUN sed -i 's/deb.debian.org/mirror-linux.runflare.com/g' /etc/apt/sources.list.d/debian.sources
+RUN sed -i 's/security.debian.org/mirror-linux.runflare.com/g' /etc/apt/sources.list.d/debian.sources
+RUN sed -i 's/https/http/g' /etc/apt/sources.list.d/debian.sources
+
+# Copy package*.json dependencies
 COPY package*.json ./
-COPY .env.template ./.env
 
 # Install necessary system packages and dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    bash \
-    vim \
-    && npm ci --omit=dev --silent \
-    && npm cache clean --force \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends bash vim
+
+RUN npm ci --omit=dev --silent --registry="https://mirror-npm.runflare.com" \
+    npm cache clean --force \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
 # Copy the application code
 COPY frontend frontend
 COPY backend backend
+
+EXPOSE 80
 
 # Set default command to start the application
 CMD ["npm", "start"]
