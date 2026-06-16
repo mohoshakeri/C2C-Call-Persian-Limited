@@ -2017,6 +2017,10 @@ function handleChatEmojiPicker() {
         theme: 'dark',
         perLine: 8,
         onEmojiSelect: addEmojiToMsg,
+        data: async () => {
+            const res = await fetch('../libs/js/emoji-mart-data.json');
+            return res.json();
+        },
     };
     const emojiPicker = new EmojiMart.Picker(pickerOptions);
     chatEmoji.appendChild(emojiPicker);

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn FD:wght@400;500;600;700&display=swap');
+@import url('../libs/css/vazirmatn-fd.css');
 
 :root {
     --home-bg: #15161a;
