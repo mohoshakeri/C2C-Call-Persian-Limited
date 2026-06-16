@@ -75,7 +75,7 @@ function sendEmail(subject, body) {
 
 function getJoinRoomSubject(data) {
     const { room_id } = data;
-    return `MiroTalk C2C - New user Join to Room ${room_id}`;
+    return `${process.env.BRAND_NAME || 'MiroTalk C2C'} - New user Join to Room ${room_id}`;
 }
 
 function getJoinRoomBody(data) {

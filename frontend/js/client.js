@@ -1630,7 +1630,7 @@ function giveMeFeedback() {
         imageUrl: image.feedback,
         position: 'top',
         title: 'نظر بدهید',
-        text: 'می‌خواهید تجربه MiroTalk خود را امتیاز دهید؟',
+        text: `می‌خواهید تجربه ${window.BRAND_NAME || 'C2C'} خود را امتیاز دهید؟`,
         confirmButtonText: `بله`,
         denyButtonText: `خیر`,
         cancelButtonText: `لغو`,

@@ -68,6 +68,13 @@ const apiKeySecret = process.env.API_KEY_SECRET || 'mirotalkc2c_default_secret';
 const apiBasePath = '/api/v1'; // api endpoint path
 const apiDocs = host + apiBasePath + '/docs'; // api docs
 
+const brandName = process.env.BRAND_NAME || 'MiroTalk C2C';
+
+function serveHtml(res, filePath) {
+    const html = fs.readFileSync(filePath, 'utf8').replace(/\{\{BRAND_NAME\}\}/g, brandName);
+    res.type('html').send(html);
+}
+
 // Cors
 const cors_origin = process.env.CORS_ORIGIN;
 const cors_methods = process.env.CORS_METHODS;
@@ -333,11 +340,11 @@ const HomeOIDCAuth = (req, res, next) => {
 };
 
 app.get('/', HomeOIDCAuth, (req, res) => {
-    return res.sendFile(htmlHome);
+    return serveHtml(res, htmlHome);
 });
 
 app.get('/privacy', (req, res) => {
-    return res.sendFile(htmlPrivacy);
+    return serveHtml(res, htmlPrivacy);
 });
 
 app.get(
@@ -364,11 +371,11 @@ app.get(
                 return notFound(res);
             }
         }
-        return res.sendFile(htmlClient);
+        return serveHtml(res, htmlClient);
     },
     (req, res) => {
         // Reached only after OIDCAuth completes the login flow above.
-        return res.sendFile(htmlClient);
+        return serveHtml(res, htmlClient);
     }
 );
 
