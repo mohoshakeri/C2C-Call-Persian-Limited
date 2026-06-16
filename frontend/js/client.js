@@ -697,7 +697,7 @@ function createVideoSpinner() {
     const spinner = document.createElement('div');
     spinner.className = 'video-spinner';
     spinner.innerHTML =
-        '<div class="loading-spinner"><div class="spinner-ring"></div><img class="spinner-logo" src="../images/logo.svg" alt="logo" /></div>';
+        '<div class="loading-spinner"><div class="spinner-ring"></div><img class="spinner-logo" src="../images/logo.png" alt="logo" /></div>';
     return spinner;
 }
 

@@ -69,9 +69,16 @@ const apiBasePath = '/api/v1'; // api endpoint path
 const apiDocs = host + apiBasePath + '/docs'; // api docs
 
 const brandName = process.env.BRAND_NAME || 'MiroTalk C2C';
+const logoUrl = process.env.LOGO_URL || '/images/logo.png';
+const faviconUrl = process.env.FAVICON_URL || '/images/favicon.ico';
+const faviconPngUrl = process.env.FAVICON_URL || '/images/favicon.png';
 
 function serveHtml(res, filePath) {
-    const html = fs.readFileSync(filePath, 'utf8').replace(/\{\{BRAND_NAME\}\}/g, brandName);
+    const html = fs.readFileSync(filePath, 'utf8')
+        .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+        .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
+        .replace(/\{\{FAVICON_URL\}\}/g, faviconUrl)
+        .replace(/\{\{FAVICON_PNG_URL\}\}/g, faviconPngUrl);
     res.type('html').send(html);
 }
 
