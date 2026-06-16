@@ -34,6 +34,7 @@ const sentry = require('./sentry');
 const { applyEmbedHeaders, embedAllowedOrigins, embedCsp } = require('./embedHeaders');
 const yaml = require('js-yaml');
 const swaggerUi = require('swagger-ui-express');
+const jwt = require('jsonwebtoken');
 const swaggerDocument = yaml.load(fs.readFileSync(path.join(__dirname, '/api/swagger.yaml'), 'utf8'));
 const queryJoin = '/join?room=test&name=test';
 const queryRoom = '/?room=test';
@@ -65,6 +66,8 @@ const port = process.env.PORT || 8080;
 const host = process.env.HOST || `http://localhost:${port}`;
 
 const apiKeySecret = process.env.API_KEY_SECRET || 'mirotalkc2c_default_secret';
+const jwtSecret = process.env.JWT_SECRET || 'mirotalkc2c_jwt_default_secret';
+const limited = getEnvBoolean(process.env.LIMITED);
 const apiBasePath = '/api/v1'; // api endpoint path
 const apiDocs = host + apiBasePath + '/docs'; // api docs
 
@@ -73,12 +76,14 @@ const logoUrl = process.env.LOGO_URL || '/images/logo.png';
 const faviconUrl = process.env.FAVICON_URL || '/images/favicon.ico';
 const faviconPngUrl = process.env.FAVICON_URL || '/images/favicon.png';
 
-function serveHtml(res, filePath) {
-    const html = fs.readFileSync(filePath, 'utf8')
+function serveHtml(res, filePath, extra = {}) {
+    let html = fs.readFileSync(filePath, 'utf8')
         .replace(/\{\{BRAND_NAME\}\}/g, brandName)
         .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
         .replace(/\{\{FAVICON_URL\}\}/g, faviconUrl)
-        .replace(/\{\{FAVICON_PNG_URL\}\}/g, faviconPngUrl);
+        .replace(/\{\{FAVICON_PNG_URL\}\}/g, faviconPngUrl)
+        .replace(/\{\{SESSION_INFO_JSON\}\}/g, extra.SESSION_INFO_JSON ?? 'null')
+        .replace(/\{\{LIMITED_SESSION_JSON\}\}/g, extra.LIMITED_SESSION_JSON ?? 'null');
     res.type('html').send(html);
 }
 
@@ -207,7 +212,10 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json()); // Api parse body data as json
 app.use(express.urlencoded({ extended: false })); // Mattermost
-app.use(apiBasePath + '/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); // api docs
+// API docs available only in development
+if ((process.env.NODE_ENV || 'development') !== 'production') {
+    app.use(apiBasePath + '/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 // Logs requests
 app.use((req, res, next) => {
@@ -346,6 +354,31 @@ const HomeOIDCAuth = (req, res, next) => {
 };
 
 app.get('/', HomeOIDCAuth, (req, res) => {
+    if (limited) {
+        const rawToken = req.query.token;
+        const token = rawToken ? checkXSS(rawToken) : null;
+        if (!token) {
+            return res.status(404).json({ data: '404 not found' });
+        }
+        let payload;
+        try {
+            payload = jwt.verify(token, jwtSecret);
+        } catch (err) {
+            log.warn('LIMITED: invalid or expired token on home', err.message);
+            return res.status(403).type('html').send(sessionErrorPage('جلسه منقضی یا نامعتبر است'));
+        }
+        const now = Date.now();
+        if (now > payload.end_time) {
+            return res.status(403).type('html').send(sessionErrorPage('زمان جلسه به پایان رسیده است'));
+        }
+        return serveHtml(res, htmlHome, {
+            LIMITED_SESSION_JSON: JSON.stringify({
+                token,
+                session_name: payload.session_name || null,
+                end_time: payload.end_time,
+            }),
+        });
+    }
     return serveHtml(res, htmlHome);
 });
 
@@ -356,8 +389,37 @@ app.get(
         if (Object.keys(req.query).length === 0) {
             return notFound(res);
         }
-        //http://localhost:3000/join?room=test&name=test
         log.debug('[' + req.headers.host + ']' + ' request query', req.query);
+
+        if (limited) {
+            const { token, name } = checkXSS(req.query);
+            if (!token || !name) {
+                return notFound(res);
+            }
+            let payload;
+            try {
+                payload = jwt.verify(token, jwtSecret);
+            } catch (err) {
+                log.warn('LIMITED: invalid or expired token on /join', err.message);
+                return res.status(403).type('html').send(sessionErrorPage('جلسه منقضی یا نامعتبر است'));
+            }
+            const serverNow = Date.now();
+            if (serverNow < payload.start_time || serverNow > payload.end_time) {
+                return res.status(403).type('html').send(sessionErrorPage('زمان جلسه خارج از محدوده مجاز است'));
+            }
+            return serveHtml(res, htmlClient, {
+                SESSION_INFO_JSON: JSON.stringify({
+                    room: payload.room,
+                    session_name: payload.session_name || null,
+                    start_time: payload.start_time,
+                    end_time: payload.end_time,
+                    server_time: serverNow,
+                    token,
+                }),
+            });
+        }
+
+        //http://localhost:3000/join?room=test&name=test
         const { room, name } = checkXSS(req.query);
         if (!room || !name) {
             return notFound(res);
@@ -402,6 +464,48 @@ app.post([`${apiBasePath}/meeting`], (req, res) => {
     });
 });
 
+// LIMITED: create a JWT-based time-limited session
+app.post(`${apiBasePath}/session`, (req, res) => {
+    if (!limited) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    const { host, authorization } = req.headers;
+    const api = new ServerApi(host, authorization, apiKeySecret, jwtSecret);
+    if (!api.isAuthorized()) {
+        log.debug('LIMITED create session - Unauthorized', { header: req.headers });
+        return res.status(403).json({ error: 'Unauthorized!' });
+    }
+    const { duration_minutes, session_name } = req.body;
+    const link = api.createSession(duration_minutes != null ? Number(duration_minutes) : null, session_name || null);
+    res.json({ link });
+    log.debug('LIMITED create session - Authorized', { link });
+});
+
+// LIMITED: verify a session JWT and return server time
+app.get(`${apiBasePath}/session/verify`, (req, res) => {
+    if (!limited) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    const rawToken = req.query.token;
+    const token = rawToken ? checkXSS(rawToken) : null;
+    if (!token) {
+        return res.status(400).json({ error: 'Token required' });
+    }
+    try {
+        const payload = jwt.verify(token, jwtSecret);
+        const server_time = Date.now();
+        res.json({
+            valid: true,
+            session_name: payload.session_name || null,
+            start_time: payload.start_time,
+            end_time: payload.end_time,
+            server_time,
+        });
+    } catch (err) {
+        res.json({ valid: false, error: err.message });
+    }
+});
+
 // API request join room endpoint
 app.post([`${apiBasePath}/join`], (req, res) => {
     const { host, authorization } = req.headers;
@@ -428,6 +532,30 @@ app.use((req, res) => {
 
 function notFound(res) {
     res.json({ data: '404 not found' });
+}
+
+function sessionErrorPage(message) {
+    return `<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>خطا در جلسه</title>
+<link rel="stylesheet" href="/libs/css/vazirmatn-fd.css"/>
+<style>
+body{font-family:'Vazirmatn FD',Arial,sans-serif;background:#1a1a2e;color:#eee;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
+.box{text-align:center;background:#16213e;padding:40px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+h1{color:#ff4d4d;font-size:1.8rem;margin-bottom:1rem;}
+p{color:#aaa;font-size:1.05rem;}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>⛔ ${message}</h1>
+<p>لطفاً با مدیر جلسه تماس بگیرید.</p>
+</div>
+</body>
+</html>`;
 }
 
 function getEnvBoolean(key, force_true_if_undefined = false) {
@@ -463,6 +591,7 @@ function getServerConfig(tunnelHttps = false) {
             allowedOrigins: embedAllowedOrigins.length ? embedAllowedOrigins : 'any',
             csp: embedCsp ? embedCsp.csp : 'not set (embedding allowed from any origin)',
         },
+        limited: limited,
         apiDocs: apiDocs,
         apiKeySecret: apiKeySecret,
         mattermost: mattermostCfg.enabled ? mattermostCfg : false,

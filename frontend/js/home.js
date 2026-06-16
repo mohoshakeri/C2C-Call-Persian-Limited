@@ -3,8 +3,11 @@
 console.log('Location', window.location);
 console.log('LocalStorage', window.localStorage);
 
+const limitedSession = window.LIMITED_SESSION || null;
+
 const roomId = filterXSS(new URLSearchParams(window.location.search).get('room') || '');
 
+const roomInputGroup = document.getElementById('roomInputGroup');
 const roomIdIn = document.getElementById('roomIdInput');
 const userNameIn = document.getElementById('userNameInput');
 const randomRoomBtn = document.getElementById('randomRoomBtn');
@@ -16,6 +19,11 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 async function initHome() {
+    if (limitedSession) {
+        await initLimitedHome();
+        return;
+    }
+
     roomIdIn.value = roomId ? roomId : filterXSS(window.localStorage.room) || '';
 
     const getUserName = async () => {
@@ -53,7 +61,61 @@ async function initHome() {
             window.localStorage.name = userNameIn.value;
         }
     };
+}
 
+async function initLimitedHome() {
+    // Hide room input — user only enters their name
+    if (roomInputGroup) roomInputGroup.style.display = 'none';
+    if (randomRoomBtn) randomRoomBtn.style.display = 'none';
+
+    // Show session name in header
+    if (limitedSession.session_name) {
+        const title = document.getElementById('formTitle');
+        if (title) title.textContent = limitedSession.session_name;
+    }
+
+    // Show session end time
+    const endLabel = document.getElementById('sessionEndTimeLabel');
+    if (endLabel && limitedSession.end_time) {
+        const endDate = new Date(limitedSession.end_time);
+        const timeStr = endDate.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = endDate.toLocaleDateString('fa-IR');
+        endLabel.textContent = 'پایان جلسه: ' + dateStr + ' — ' + timeStr;
+        endLabel.style.display = 'block';
+    }
+
+    // Prefill name from localStorage or OIDC
+    const getUserName = async () => {
+        try {
+            const { data: profile } = await axios.get('/profile', { timeout: 5000 });
+            if (profile && profile.name) {
+                window.localStorage.name = profile.name;
+            }
+        } catch (error) {
+            console.error('AXIOS OIDC Error fetching profile', error.message || error);
+        }
+        return window.localStorage.name || '';
+    };
+    userNameIn.value = filterXSS(await getUserName());
+
+    randomUserBtn.onclick = () => {
+        const finalValue = 'User_' + Math.floor(Math.random() * 1000000);
+        shuffleText(userNameIn, finalValue);
+    };
+
+    joinBtn.onclick = (e) => {
+        e.preventDefault();
+        const name = filterXSS(userNameIn.value.trim());
+        if (!name) return;
+        window.localStorage.name = name;
+        const joinURL =
+            window.location.origin +
+            '/join?token=' +
+            encodeURIComponent(limitedSession.token) +
+            '&name=' +
+            encodeURIComponent(name);
+        window.location.href = joinURL;
+    };
 }
 
 function shuffleText(input, finalValue, duration = 600) {

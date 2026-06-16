@@ -316,10 +316,9 @@ function copyRoom() {
             `<div id="qrRoomContainer">
                 <canvas id="qrRoom"></canvas>
             </div>
-            <br/>
-            <p style="color:rgb(8, 189, 89);">از موبایل خود وارد شوید</p>
-            <p style="background:transparent; color:white; font-family: Vazirmatn FD, Arial, sans-serif; direction:rtl;">نیازی به نصب اپ نیست، کافی است QR Code را با دوربین موبایل خود اسکن کنید یا لینک زیر را برای دیگران ارسال کنید</p>
-            <p style="color:rgb(8, 189, 89);">${roomURL}</p>`
+            <p style="color:rgb(8, 189, 89); margin-top: 12px;">از موبایل خود وارد شوید</p>
+            <p style="background:transparent; color:#ccc; font-family: Vazirmatn FD, Arial, sans-serif; direction:rtl; font-size: 0.9em;">کد QR را اسکن کنید یا دکمه کپی را بزنید</p>
+            <button onclick="navigator.clipboard.writeText('${roomURL}')" style="margin-top:4px; padding:8px 20px; background:#376df9; color:white; border:none; border-radius:8px; cursor:pointer; font-family: Vazirmatn FD, Arial, sans-serif; font-size:0.95em;">📋 کپی لینک</button>`
         );
         makeRoomQR();
     });
@@ -367,6 +366,86 @@ function startSessionTime() {
         sessionElapsedTime++;
         sessionTime.innerText = secondsToHms(sessionElapsedTime);
     }, 1000);
+}
+
+// Format seconds as H:MM:SS or M:SS — always shows both minutes and seconds
+function secondsToCountdown(totalSecs) {
+    totalSecs = Math.max(0, Math.floor(totalSecs));
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    const mm = String(m).padStart(h > 0 ? 2 : 1, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+let _limitedTimerStarted = false;
+
+function startLimitedSessionTimer(info) {
+    // Guard: only one timer instance per page
+    if (_limitedTimerStarted) return;
+    _limitedTimerStarted = true;
+
+    const badge = document.getElementById('sessionTimerBadge');
+    const badgeValue = document.getElementById('sessionTimerValue');
+
+    // Offset between client clock and server clock captured at page render
+    let serverOffset = Date.now() - info.server_time;
+
+    function getServerNow() {
+        return Date.now() - serverOffset;
+    }
+
+    function updateDisplay() {
+        const remaining = info.end_time - getServerNow();
+
+        if (remaining <= 0) {
+            if (badge) { badge.style.display = 'flex'; badge.classList.add('warning'); }
+            if (badgeValue) badgeValue.textContent = '0:00';
+            if (sessionTime) sessionTime.innerText = '0:00';
+            clearInterval(tickId);
+            clearInterval(verifyId);
+            if (typeof endCall === 'function') endCall();
+            return;
+        }
+
+        const remainingSecs = Math.floor(remaining / 1000);
+        const display = secondsToCountdown(remainingSecs);
+
+        if (sessionTime) sessionTime.innerText = display;
+
+        if (badge && badgeValue) {
+            badge.style.display = 'flex';
+            badgeValue.textContent = display;
+            if (remainingSecs <= 600) {
+                badge.classList.add('warning');
+            } else {
+                badge.classList.remove('warning');
+            }
+        }
+    }
+
+    const tickId = setInterval(updateDisplay, 1000);
+    updateDisplay();
+
+    // Every 10 minutes: re-verify JWT with server and resync offset
+    const verifyId = setInterval(async () => {
+        try {
+            const resp = await fetch('/api/v1/session/verify?token=' + encodeURIComponent(info.token));
+            const data = await resp.json();
+            if (!data.valid) {
+                clearInterval(tickId);
+                clearInterval(verifyId);
+                if (typeof endCall === 'function') endCall();
+                return;
+            }
+            serverOffset = Date.now() - data.server_time;
+            info.end_time = data.end_time;
+            info.server_time = data.server_time;
+        } catch (err) {
+            console.warn('Session verify error', err);
+        }
+    }, 10 * 60 * 1000);
 }
 
 function secondsToHms(d) {

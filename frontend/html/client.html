@@ -21,7 +21,7 @@
         <link rel="stylesheet" href="../css/client.css" />
         <link rel="stylesheet" href="../css/common.css" />
 
-        <script>window.BRAND_NAME = '{{BRAND_NAME}}';</script>
+        <script>window.BRAND_NAME = '{{BRAND_NAME}}'; window.LOGO_URL = '{{LOGO_URL}}'; window.SESSION_INFO = {{SESSION_INFO_JSON}};</script>
         <script defer src="../libs/js/adapter.js"></script>
         <script defer src="../libs/js/sweetalert2.all.min.js"></script>
         <script defer src="../libs/js/xss.min.js"></script>
@@ -82,6 +82,11 @@
                     <button id="initLeaveBtn" class="action-btn fas fa-phone-slash red"></button>
                 </div>
             </div>
+        </div>
+
+        <div id="sessionTimerBadge" style="display:none;">
+            <i class="fas fa-clock"></i>
+            <span id="sessionTimerValue">--:--</span>
         </div>
 
         <div id="buttonsBar">

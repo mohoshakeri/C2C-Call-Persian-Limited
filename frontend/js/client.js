@@ -12,7 +12,8 @@
  * @version 1.3.12
  */
 
-const roomId = new URLSearchParams(window.location.search).get('room');
+const sessionInfo = window.SESSION_INFO || null;
+const roomId = sessionInfo ? sessionInfo.room : new URLSearchParams(window.location.search).get('room');
 const peerName = new URLSearchParams(window.location.search).get('name');
 
 const loadingDivContainer = document.getElementById('loadingDivContainer');
@@ -67,7 +68,9 @@ const chatFileInput = document.getElementById('chatFileInput');
 const chatEmoji = document.getElementById('chatEmoji');
 let chatMessages = []; // collect chat messages to save it later
 
-const roomURL = window.location.origin + '/?room=' + roomId;
+const roomURL = sessionInfo
+    ? window.location.origin + '/?token=' + encodeURIComponent(sessionInfo.token)
+    : window.location.origin + '/?room=' + roomId;
 
 const LS = new LocalStorage();
 
@@ -368,7 +371,11 @@ function handleAddPeer(config) {
         }, 2000);
     }
 
-    startSessionTime();
+    if (sessionInfo) {
+        startLimitedSessionTimer(sessionInfo);
+    } else {
+        startSessionTime();
+    }
     playSound('join');
 }
 
@@ -689,7 +696,7 @@ function createVideoSpinner() {
     const spinner = document.createElement('div');
     spinner.className = 'video-spinner';
     spinner.innerHTML =
-        '<div class="loading-spinner"><div class="spinner-ring"></div><img class="spinner-logo" src="../images/logo.png" alt="logo" /></div>';
+        '<div class="loading-spinner"><div class="spinner-ring"></div><img class="spinner-logo" src="' + (window.LOGO_URL || '../images/logo.png') + '" alt="logo" /></div>';
     return spinner;
 }
 
@@ -1237,6 +1244,7 @@ function showWaitingUser() {
     elemDisplay(loadingDivContainer, false);
     elemDisplay(waitingDivContainer, true);
     if (window.myVideoWrap) window.myVideoWrap.classList.add('waitingFullScreen');
+    if (sessionInfo) startLimitedSessionTimer(sessionInfo);
 }
 
 function toggleHideMe() {

@@ -2,7 +2,7 @@ swagger: '2.0'
 
 info:
     title: MiroTalk C2C API
-    description: API description for external applications that integrates with MiroTalk C2C.
+    description: API description for external applications that integrates with MiroTalk C2C. Note — this documentation is only available in development mode.
     version: 1.0.0
 
 basePath: /api/v1
@@ -12,6 +12,65 @@ schemes:
     - http
 
 paths:
+    /session:
+        post:
+            tags:
+                - 'session (LIMITED mode)'
+            summary: 'Create a time-limited JWT session'
+            description: 'Creates a JWT-based meeting link with a defined duration. Only available when LIMITED=true.'
+            consumes:
+                - 'application/json'
+            produces:
+                - 'application/json'
+            security:
+                - secretApiKey: []
+            parameters:
+                - in: body
+                  name: Session
+                  description: Session parameters.
+                  schema:
+                      type: object
+                      properties:
+                          duration_minutes:
+                              type: integer
+                              description: 'Session duration in minutes. Null or omit for 3 hours.'
+                              example: 60
+                          session_name:
+                              type: string
+                              description: 'Optional display name for the session.'
+                              example: 'جلسه هیئت مدیره'
+            responses:
+                '200':
+                    description: 'Session link created'
+                    schema:
+                        $ref: '#/definitions/SessionResponse'
+                '403':
+                    description: 'Unauthorized!'
+                '404':
+                    description: 'LIMITED mode not enabled'
+    /session/verify:
+        get:
+            tags:
+                - 'session (LIMITED mode)'
+            summary: 'Verify a session JWT'
+            description: 'Verifies a session token and returns server time and session bounds. Used by the client every 10 minutes.'
+            produces:
+                - 'application/json'
+            parameters:
+                - in: query
+                  name: token
+                  type: string
+                  required: true
+                  description: 'The JWT token from the session link'
+            responses:
+                '200':
+                    description: 'Verification result'
+                    schema:
+                        $ref: '#/definitions/SessionVerifyResponse'
+                '400':
+                    description: 'Token required'
+                '404':
+                    description: 'LIMITED mode not enabled'
     /meeting:
         post:
             tags:
@@ -75,6 +134,25 @@ securityDefinitions:
         description: 'Format like this: authorization: {API_KEY_SECRET}'
 
 definitions:
+    SessionResponse:
+        type: 'object'
+        properties:
+            link:
+                type: 'string'
+                description: 'JWT-based meeting URL (/?token=...)'
+    SessionVerifyResponse:
+        type: 'object'
+        properties:
+            valid:
+                type: 'boolean'
+            session_name:
+                type: 'string'
+            start_time:
+                type: 'integer'
+            end_time:
+                type: 'integer'
+            server_time:
+                type: 'integer'
     MeetingResponse:
         type: 'object'
         properties:

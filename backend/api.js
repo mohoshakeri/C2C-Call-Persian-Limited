@@ -1,12 +1,14 @@
 'use strict';
 
 const { v4: uuidV4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 
 module.exports = class ServerApi {
-    constructor(host = null, authorization = null, apiKeySecret = null) {
+    constructor(host = null, authorization = null, apiKeySecret = null, jwtSecret = null) {
         this._host = host;
         this._authorization = authorization;
         this._api_key_secret = apiKeySecret;
+        this._jwt_secret = jwtSecret;
     }
 
     isAuthorized() {
@@ -20,6 +22,25 @@ module.exports = class ServerApi {
 
     getJoinURL(data) {
         return this.getProtocol() + this._host + '/join?room=' + data.room + '&name=' + data.name;
+    }
+
+    // LIMITED mode: create a JWT-based time-limited session link
+    createSession(duration_minutes, session_name) {
+        const room = uuidV4();
+        const start_time = Date.now();
+        const duration_ms = (duration_minutes != null ? duration_minutes : 180) * 60 * 1000;
+        const end_time = start_time + duration_ms;
+
+        const payload = {
+            room,
+            session_name: session_name || null,
+            start_time,
+            end_time,
+        };
+
+        const expiresInSec = Math.ceil(duration_ms / 1000) + 120;
+        const token = jwt.sign(payload, this._jwt_secret, { expiresIn: expiresInSec });
+        return this.getProtocol() + this._host + '/?token=' + token;
     }
 
     getProtocol() {
