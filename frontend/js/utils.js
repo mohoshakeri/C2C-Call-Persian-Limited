@@ -312,13 +312,13 @@ function copyRoom() {
         document.body.removeChild(tmpInput);
         popupMessage(
             'html',
-            'Room sharing',
+            'اشتراک‌گذاری اتاق',
             `<div id="qrRoomContainer">
                 <canvas id="qrRoom"></canvas>
             </div>
             <br/>
-            <p style="color:rgb(8, 189, 89);">Join from your mobile device</p>
-            <p style="background:transparent; color:white; font-family: Arial, Helvetica, sans-serif;">No need for apps, simply capture the QR code with your mobile camera Or Invite someone else to join by sending them the following URL</p>
+            <p style="color:rgb(8, 189, 89);">از موبایل خود وارد شوید</p>
+            <p style="background:transparent; color:white; font-family: Vazirmatn FD, Arial, sans-serif; direction:rtl;">نیازی به نصب اپ نیست، کافی است QR Code را با دوربین موبایل خود اسکن کنید یا لینک زیر را برای دیگران ارسال کنید</p>
             <p style="color:rgb(8, 189, 89);">${roomURL}</p>`
         );
         makeRoomQR();

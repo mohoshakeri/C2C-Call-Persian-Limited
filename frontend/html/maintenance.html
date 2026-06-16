@@ -1,7 +1,7 @@
 <!doctype html>
-<html>
+<html lang="fa" dir="rtl">
     <head>
-        <title>Site Maintenance</title>
+        <title>سایت در حال تعمیر</title>
         <meta charset="utf-8" />
         <meta name="robots" content="noindex" />
         <meta
@@ -9,13 +9,14 @@
             content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
         />
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Vazirmatn FD:wght@400;500;600;700&display=swap');
+
             body {
                 text-align: center;
                 padding: 20px;
-                font:
-                    20px Helvetica,
-                    sans-serif;
+                font: 20px 'Vazirmatn FD', Helvetica, sans-serif;
                 color: #333;
+                direction: rtl;
             }
 
             @media (min-width: 768px) {
@@ -30,7 +31,7 @@
 
             article {
                 display: block;
-                text-align: left;
+                text-align: right;
                 max-width: 650px;
                 margin: 0 auto;
             }
@@ -49,20 +50,18 @@
 
     <body>
         <article>
-            <h1>We&rsquo;ll be back soon!</h1>
+            <h1>به زودی برمی‌گردیم!</h1>
             <div>
                 <p>
-                    Sorry for the inconvenience but we&rsquo;re performing some maintenance at the moment. If you need
-                    to you can always
-                    <a href="mailto:miroslav.pejic.85@gmail.com">contact us</a>, otherwise we&rsquo;ll be back online
-                    shortly!
+                    از بابت این وقفه عذرخواهی می‌کنیم، در حال انجام تعمیرات هستیم. در صورت نیاز می‌توانید با
+                    <a href="mailto:miroslav.pejic.85@gmail.com">ما تماس بگیرید</a>، در غیر این صورت به زودی آنلاین خواهیم بود!
                 </p>
                 <img src="https://media.giphy.com/media/dWesBcTLavkZuG35MI/giphy.gif" />
-                <p>&mdash; The MiroTalk Team</p>
+                <p>&mdash; تیم MiroTalk</p>
             </div>
         </article>
     </body>
-    <!--  
+    <!--
 	# Under maintenance custom page
 	error_page 500 502 503 504 /50X.html;
 	location = /maintenance.html {

@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
     <head>
-        <title>MiroTalk WebRTC C2C end-to-end encrypted</title>
+        <title>MiroTalk WebRTC C2C - تماس ویدیویی رمزنگاری شده</title>
 
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -11,13 +11,13 @@
         />
         <meta
             name="description"
-            content="MiroTalk C2C WebRTC real-time cam-2-cam video calls and screen sharing, end-to-end encrypted."
+            content="MiroTalk C2C - تماس ویدیویی WebRTC بلادرنگ، دوربین به دوربین و اشتراک صفحه، رمزنگاری شده."
         />
 
         <meta property="og:type" content="app-webrtc" />
         <meta property="og:site_name" content="MiroTalk C2C" />
-        <meta property="og:title" content="Click the link to join this call." />
-        <meta property="og:description" content="Free WebRTC cam-2-cam video calls." />
+        <meta property="og:title" content="روی لینک کلیک کنید تا به تماس بپیوندید." />
+        <meta property="og:description" content="تماس ویدیویی WebRTC رایگان." />
         <meta property="og:image" content="https://c2c.mirotalk.com/images/ui.png" />
         <meta property="og:url" content="https://c2c.mirotalk.com" />
 
@@ -39,18 +39,18 @@
                 <div class="form-logo">
                     <img src="../images/logo.svg" alt="MiroTalk" />
                 </div>
-                <h2>Start a Video Call</h2>
-                <p>Connect face-to-face, instantly</p>
+                <h2>شروع تماس ویدیویی</h2>
+                <p>ارتباط چهره به چهره، فوری</p>
             </div>
 
             <div class="input-group">
-                <label for="room"><i class="fas fa-door-open"></i> Room</label>
+                <label for="room"><i class="fas fa-door-open"></i> اتاق</label>
                 <div class="input-container">
                     <input
                         id="roomIdInput"
                         type="text"
                         name="room"
-                        placeholder="e.g. my-meeting"
+                        placeholder="مثلاً my-meeting"
                         maxlength="36"
                         required
                     />
@@ -58,8 +58,8 @@
                         type="button"
                         id="randomRoomBtn"
                         class="input-btn"
-                        title="Generate random room"
-                        aria-label="Generate Random Room"
+                        title="ایجاد اتاق تصادفی"
+                        aria-label="ایجاد اتاق تصادفی"
                     >
                         <i class="fa fa-random"></i>
                     </button>
@@ -67,13 +67,13 @@
             </div>
 
             <div class="input-group">
-                <label for="username"><i class="fas fa-user"></i> Name</label>
+                <label for="username"><i class="fas fa-user"></i> نام</label>
                 <div class="input-container">
                     <input
                         id="userNameInput"
                         type="text"
                         name="name"
-                        placeholder="Your display name"
+                        placeholder="نام نمایشی شما"
                         maxlength="36"
                         required
                     />
@@ -81,8 +81,8 @@
                         type="button"
                         id="randomUserBtn"
                         class="input-btn"
-                        title="Generate random user"
-                        aria-label="Generate Random User"
+                        title="ایجاد نام تصادفی"
+                        aria-label="ایجاد نام تصادفی"
                     >
                         <i class="fa fa-random"></i>
                     </button>
@@ -91,11 +91,11 @@
 
             <button type="submit" id="joinBtn" class="join-button">
                 <i class="fas fa-video"></i>
-                <span>Join Call</span>
+                <span>ورود به تماس</span>
             </button>
 
             <div class="form-divider">
-                <span><a href="/privacy" class="privacy-link">Privacy Policy</a></span>
+                <span><a href="/privacy" class="privacy-link">سیاست حریم خصوصی</a></span>
             </div>
 
             <button id="supportBtn" class="support-btn">&copy; 2026 MiroTalk C2C</button>

@@ -205,6 +205,8 @@
     min-width: 0;
     box-sizing: border-box;
     margin: 0;
+    direction: rtl;
+    font-family: 'Vazirmatn FD', sans-serif;
 }
 
 .chat .footer .footer-buttons textarea:focus {

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn FD:wght@400;500;600;700&display=swap');
 
 :root {
     --home-bg: #15161a;
@@ -21,7 +21,8 @@ body {
     justify-content: center;
     align-items: center;
     background: var(--home-bg);
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vazirmatn FD', sans-serif;
+    direction: rtl;
     margin: 0;
     padding: 20px;
 }
@@ -84,10 +85,9 @@ body {
     gap: 8px;
     margin-bottom: 8px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
 }
 
 .input-group label i {
@@ -103,15 +103,16 @@ body {
 .input-group input,
 #userNameInput {
     width: 100%;
-    padding: 14px 52px 14px 16px;
+    padding: 14px 16px 14px 52px;
     border: 1.5px solid var(--input-border);
     border-radius: var(--radius);
     background: var(--input-bg);
     color: var(--text-primary);
     font-size: 0.95rem;
     outline: none;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vazirmatn FD', sans-serif;
     box-sizing: border-box;
+    direction: rtl;
     transition:
         border-color 0.2s ease,
         box-shadow 0.2s ease;
@@ -140,7 +141,7 @@ body {
 /* Random buttons inside inputs */
 .input-btn {
     position: absolute;
-    right: 8px;
+    left: 8px;
     background: rgba(55, 109, 249, 0.15);
     border: none;
     border-radius: 8px;
@@ -171,7 +172,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vazirmatn FD', sans-serif;
     transition:
         background 0.2s ease,
         transform 0.15s ease,
@@ -239,7 +240,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vazirmatn FD', sans-serif;
     transition: color 0.2s ease;
 }
 
@@ -260,7 +261,7 @@ body {
 
     .input-group input,
     #userNameInput {
-        padding: 12px 48px 12px 14px;
+        padding: 12px 14px 12px 48px;
         font-size: 0.9rem;
     }
 

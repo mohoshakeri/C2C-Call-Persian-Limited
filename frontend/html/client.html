@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
     <head>
         <title>MiroTalk WebRTC C2C</title>
 
@@ -11,13 +11,13 @@
         />
         <meta
             name="description"
-            content="MiroTalk C2C WebRTC real-time cam-2-cam video calls and screen sharing, end-to-end encrypted."
+            content="MiroTalk C2C - تماس ویدیویی WebRTC بلادرنگ، دوربین به دوربین و اشتراک صفحه، رمزنگاری شده."
         />
 
         <meta property="og:type" content="app-webrtc" />
         <meta property="og:site_name" content="MiroTalk C2C" />
-        <meta property="og:title" content="Click the link to join this call." />
-        <meta property="og:description" content="Free WebRTC cam-2-cam video calls." />
+        <meta property="og:title" content="روی لینک کلیک کنید تا به تماس بپیوندید." />
+        <meta property="og:description" content="تماس ویدیویی WebRTC رایگان." />
         <meta property="og:image" content="https://c2c.mirotalk.com/images/ui.png" />
         <meta property="og:url" content="https://c2c.mirotalk.com" />
 
@@ -54,23 +54,22 @@
         <script defer src="../js/fix-webm-duration.js"></script>
         <script defer src="../js/recording.js"></script>
         <script defer src="../js/client.js"></script>
-        <script defer src="../js/translate.js"></script>
         <script defer src="../js/noise-processor.js"></script>
     </head>
 
     <body>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <noscript>برای اجرای این برنامه باید JavaScript را فعال کنید.</noscript>
 
         <div id="loadingDivContainer">
             <div id="loadingDiv" class="center">
-                <h1 class="pulsate">Loading</h1>
+                <h1 class="pulsate">در حال بارگذاری</h1>
                 <div class="loading-spinner">
                     <div class="spinner-ring"></div>
                     <img class="spinner-logo" src="../images/logo.svg" alt="logo" />
                 </div>
                 <pre>
-Please allow camera & microphone
-access to use this app.          
+لطفاً دسترسی به دوربین و میکروفون
+را برای استفاده از این برنامه مجاز کنید.
                 </pre>
             </div>
         </div>
@@ -83,7 +82,7 @@ access to use this app.
                         <span class="dot"></span>
                         <span class="dot"></span>
                     </div>
-                    <span class="waiting-label">Waiting for participant</span>
+                    <span class="waiting-label">در انتظار شرکت‌کننده</span>
                 </div>
             </div>
             <div id="waitingOverlayBottom">
@@ -115,20 +114,20 @@ access to use this app.
 
         <div id="settings">
             <div class="settings-header">
-                <span class="settings-title"><i class="fas fa-cogs"></i> Settings</span>
+                <span class="settings-title"><i class="fas fa-cogs"></i> تنظیمات</span>
                 <button id="settingsCloseBtn" class="fas fa-times"></button>
             </div>
 
             <div class="settings-section">
-                <div class="settings-section-title"><i class="fas fa-video"></i> Video</div>
+                <div class="settings-section-title"><i class="fas fa-video"></i> ویدیو</div>
                 <div class="settings-field">
-                    <label for="videoSource">Camera</label>
+                    <label for="videoSource">دوربین</label>
                     <select id="videoSource"></select>
                 </div>
                 <div class="settings-field">
-                    <label>Quality</label>
+                    <label>کیفیت</label>
                     <select id="videoQualitySelect">
-                        <option value="default">Default</option>
+                        <option value="default">پیش‌فرض</option>
                         <option value="qvga">QVGA</option>
                         <option value="vga">VGA</option>
                         <option value="hd">HD</option>
@@ -140,9 +139,9 @@ access to use this app.
                     </select>
                 </div>
                 <div id="videoFpsDiv" class="settings-field">
-                    <label>Frame rate</label>
+                    <label>نرخ فریم</label>
                     <select id="videoFpsSelect">
-                        <option value="default">Default</option>
+                        <option value="default">پیش‌فرض</option>
                         <option value="60">60 fps</option>
                         <option value="30">30 fps</option>
                         <option value="15">15 fps</option>
@@ -152,55 +151,48 @@ access to use this app.
             </div>
 
             <div class="settings-section">
-                <div class="settings-section-title"><i class="fas fa-microphone"></i> Audio</div>
+                <div class="settings-section-title"><i class="fas fa-microphone"></i> صدا</div>
                 <div class="settings-field">
-                    <label for="audioSource">Microphone</label>
+                    <label for="audioSource">میکروفون</label>
                     <select id="audioSource"></select>
                 </div>
                 <div id="audioOutputDiv" class="settings-field">
-                    <label for="audioOutputSource">Speaker</label>
+                    <label for="audioOutputSource">بلندگو</label>
                     <select id="audioOutputSource"></select>
                     <button id="testSpeakerBtn" class="settings-test-btn" type="button">
-                        <i class="fas fa-volume-high"></i> Test speaker
+                        <i class="fas fa-volume-high"></i> تست بلندگو
                     </button>
                 </div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-section-title"><i class="fa-solid fa-language"></i> Language</div>
-                <div class="settings-field">
-                    <div id="google_translate_element"></div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-section-title"><i class="fas fa-sliders"></i> Preferences</div>
+                <div class="settings-section-title"><i class="fas fa-sliders"></i> تنظیمات ترجیحی</div>
                 <div id="noiseSuppressionDiv" class="settings-toggle-row">
-                    <label id="labelNoiseSuppression"><i class="fas fa-ear-listen"></i> Noise suppression</label>
+                    <label id="labelNoiseSuppression"><i class="fas fa-ear-listen"></i> حذف نویز</label>
                     <input id="switchNoiseSuppression" class="toggle" type="checkbox" />
                 </div>
                 <div id="maxVideoQualityDiv" class="settings-toggle-row">
-                    <label><i class="fas fa-star"></i> Best quality</label>
+                    <label><i class="fas fa-star"></i> بهترین کیفیت</label>
                     <input id="switchMaxVideoQuality" class="toggle" type="checkbox" />
                 </div>
                 <div id="aspectRatioDiv" class="settings-toggle-row">
-                    <label><i class="fas fa-display"></i> Aspect ratio</label>
+                    <label><i class="fas fa-display"></i> نسبت تصویر</label>
                     <input id="switchKeepAspectRatio" class="toggle" type="checkbox" />
                 </div>
                 <div id="pushToTalkDiv" class="settings-toggle-row">
-                    <label><i class="fas fa-hand-pointer"></i> Push to talk</label>
+                    <label><i class="fas fa-hand-pointer"></i> برای صحبت نگه دار</label>
                     <input id="switchPushToTalk" class="toggle" type="checkbox" />
                 </div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-section-title"><i class="fas fa-info-circle"></i> Session</div>
+                <div class="settings-section-title"><i class="fas fa-info-circle"></i> جلسه</div>
                 <div id="recordingDiv" class="settings-info-row">
-                    <label id="recordingLabel">🔴 Recording</label>
+                    <label id="recordingLabel">🔴 ضبط</label>
                     <span id="recordingTime">0s</span>
                 </div>
                 <div class="settings-info-row">
-                    <label><i class="fas fa-clock"></i> Session time</label>
+                    <label><i class="fas fa-clock"></i> زمان جلسه</label>
                     <span class="notranslate" id="sessionTime">0s</span>
                 </div>
             </div>
@@ -208,7 +200,7 @@ access to use this app.
 
         <div id="chat" class="chat">
             <div class="header">
-                <span class="title">Chat</span>
+                <span class="title">چت</span>
                 <div class="header-buttons">
                     <button id="chatCleanBtn" class="fas fa-trash"></button>
                     <button id="chatSaveBtn" class="fas fa-save"></button>
@@ -217,19 +209,19 @@ access to use this app.
             </div>
             <div class="body" id="chatBody">
                 <div id="chatEmptyNotice" class="chat-empty-notice">
-                    <img alt="Empty chat illustration" class="chat-empty-img" src="../svg/emptyChat.svg" />
-                    <h5 class="chat-empty-title">Start Conversation</h5>
+                    <img alt="تصویر چت خالی" class="chat-empty-img" src="../svg/emptyChat.svg" />
+                    <h5 class="chat-empty-title">شروع مکالمه</h5>
                     <p class="chat-empty-desc">
-                        There are no messages here yet. Start a conversation by sending a message.
+                        هنوز پیامی وجود ندارد. با ارسال یک پیام مکالمه را شروع کنید.
                     </p>
                 </div>
             </div>
             <div class="footer">
                 <div class="footer-buttons">
-                    <button id="chatEmojiBtn" class="fas fa-smile" title="Emoji"></button>
-                    <button id="chatFileBtn" class="fas fa-paperclip" title="Send file"></button>
+                    <button id="chatEmojiBtn" class="fas fa-smile" title="ایموجی"></button>
+                    <button id="chatFileBtn" class="fas fa-paperclip" title="ارسال فایل"></button>
                     <input type="file" id="chatFileInput" />
-                    <textarea id="chatInput" placeholder="Write a message..."></textarea>
+                    <textarea id="chatInput" placeholder="پیام بنویسید..."></textarea>
                     <button id="chatSendBtn" class="fas fa-paper-plane"></button>
                 </div>
             </div>

@@ -214,24 +214,24 @@ let surveyURL = false;
 let redirectURL = false;
 
 const tooltips = [
-    { element: shareRoomBtn, text: 'Share room URL', position: 'top' },
-    { element: copyRoomBtn, text: 'Copy and share room URL', position: 'top' },
-    { element: initHideMeBtn, text: 'Hide myself', position: 'top' },
-    { element: initVideoBtn, text: 'Toggle video', position: 'top' },
-    { element: initAudioBtn, text: 'Toggle audio', position: 'top' },
-    { element: initScreenShareBtn, text: 'Toggle screen sharing', position: 'top' },
-    { element: initChatOpenBtn, text: 'Toggle chat', position: 'top' },
-    { element: initSettingsBtn, text: 'Toggle settings', position: 'top' },
-    { element: initLeaveBtn, text: 'Leave room', position: 'top' },
-    { element: hideMeBtn, text: 'Hide myself', position: 'top' },
-    { element: videoBtn, text: 'Toggle video', position: 'top' },
-    { element: audioBtn, text: 'Toggle audio', position: 'top' },
-    { element: swapCameraBtn, text: 'Swap camera', position: 'top' },
-    { element: screenShareBtn, text: 'Toggle screen sharing', position: 'top' },
-    { element: recordingBtn, text: 'Toggle recording', position: 'top' },
-    { element: chatOpenBtn, text: 'Toggle chat', position: 'top' },
-    { element: settingsBtn, text: 'Toggle settings', position: 'top' },
-    { element: leaveBtn, text: 'Leave room', position: 'top' },
+    { element: shareRoomBtn, text: 'اشتراک‌گذاری لینک اتاق', position: 'top' },
+    { element: copyRoomBtn, text: 'کپی لینک اتاق', position: 'top' },
+    { element: initHideMeBtn, text: 'پنهان کردن خود', position: 'top' },
+    { element: initVideoBtn, text: 'روشن/خاموش ویدیو', position: 'top' },
+    { element: initAudioBtn, text: 'روشن/خاموش صدا', position: 'top' },
+    { element: initScreenShareBtn, text: 'روشن/خاموش اشتراک صفحه', position: 'top' },
+    { element: initChatOpenBtn, text: 'باز/بسته چت', position: 'top' },
+    { element: initSettingsBtn, text: 'باز/بسته تنظیمات', position: 'top' },
+    { element: initLeaveBtn, text: 'خروج از اتاق', position: 'top' },
+    { element: hideMeBtn, text: 'پنهان کردن خود', position: 'top' },
+    { element: videoBtn, text: 'روشن/خاموش ویدیو', position: 'top' },
+    { element: audioBtn, text: 'روشن/خاموش صدا', position: 'top' },
+    { element: swapCameraBtn, text: 'تغییر دوربین', position: 'top' },
+    { element: screenShareBtn, text: 'روشن/خاموش اشتراک صفحه', position: 'top' },
+    { element: recordingBtn, text: 'روشن/خاموش ضبط', position: 'top' },
+    { element: chatOpenBtn, text: 'باز/بسته چت', position: 'top' },
+    { element: settingsBtn, text: 'باز/بسته تنظیمات', position: 'top' },
+    { element: leaveBtn, text: 'خروج از اتاق', position: 'top' },
     //...
 ];
 
@@ -251,7 +251,7 @@ function initClient() {
     console.log('Location', window.location);
 
     if (!isWebRTCSupported) {
-        return popupMessage('warning', 'WebRTC', 'This browser seems not supported WebRTC!');
+        return popupMessage('warning', 'WebRTC', 'به نظر می‌رسد این مرورگر از WebRTC پشتیبانی نمی‌کند!');
     }
 
     tooltips.forEach(({ element, text, position }) => {
@@ -387,10 +387,10 @@ function roomIsBusy() {
         allowEscapeKey: false,
         position: 'center',
         icon: 'info',
-        title: 'Room is busy',
-        text: 'Please try with another one',
+        title: 'اتاق مشغول است',
+        text: 'لطفاً از اتاق دیگری استفاده کنید',
         showDenyButton: false,
-        confirmButtonText: `OK`,
+        confirmButtonText: `باشه`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -668,7 +668,7 @@ async function enumerateDevices() {
     } catch (err) {
         playSound('error');
         console.error('[Error] enumerate devices audio/video', err);
-        popupMessage('error', 'Enumerate Devices', 'Unable to enumerate devices ' + err);
+        popupMessage('error', 'شناسایی دستگاه‌ها', 'خطا در شناسایی دستگاه‌ها: ' + err);
     }
 }
 
@@ -747,7 +747,7 @@ function setLocalMedia(stream) {
     myVideoFooter.id = 'myVideoFooter';
     myVideoFooter.className = 'videoFooter';
     myVideoPeerName.id = 'myVideoPeerName';
-    myVideoPeerName.innerText = peerName + ' (me)';
+    myVideoPeerName.innerText = peerName + ' (من)';
     myVideoDraggableBtn.id = 'myVideoDraggable';
     myVideoDraggableBtn.className = className.draggable;
     myVideoDraggableBtn.style.cursor = 'move';
@@ -830,13 +830,13 @@ function setLocalMedia(stream) {
 
     // Tooltips
     if (hasVideo) {
-        setTippy(myVideoPiPBtn, 'Toggle picture in picture', 'bottom');
-        setTippy(myVideoFocusBtn, 'Toggle Focus mode', 'bottom');
-        setTippy(myVideoRotateBtn, 'Rotate video', 'bottom');
-        setTippy(myFullScreenBtn, 'Toggle full screen', 'bottom');
+        setTippy(myVideoPiPBtn, 'تصویر در تصویر', 'bottom');
+        setTippy(myVideoFocusBtn, 'حالت فوکوس', 'bottom');
+        setTippy(myVideoRotateBtn, 'چرخاندن ویدیو', 'bottom');
+        setTippy(myFullScreenBtn, 'تمام‌صفحه', 'bottom');
     }
-    setTippy(myAudioStatusIcon, 'Audio status', 'bottom');
-    setTippy(myVideoPeerName, 'Username', 'top');
+    setTippy(myAudioStatusIcon, 'وضعیت صدا', 'bottom');
+    setTippy(myVideoPeerName, 'نام کاربری', 'top');
 
     if (!isMobileDevice) {
         makeDraggable(myVideoWrap, myVideoDraggableBtn);
@@ -964,13 +964,13 @@ function setRemoteMedia(stream, peers, peerId) {
     setPeerAudioStatus(peerId, peerAudio);
 
     if (hasVideo) {
-        setTippy(remoteVideoFocusBtn, 'Focus video', 'bottom');
-        setTippy(remoteFullScreenBtn, 'Toggle full screen', 'bottom');
-        setTippy(remoteVideoPiPBtn, 'Toggle picture in picture', 'bottom');
-        setTippy(remoteVideoRotateBtn, 'Rotate video', 'bottom');
+        setTippy(remoteVideoFocusBtn, 'فوکوس ویدیو', 'bottom');
+        setTippy(remoteFullScreenBtn, 'تمام‌صفحه', 'bottom');
+        setTippy(remoteVideoPiPBtn, 'تصویر در تصویر', 'bottom');
+        setTippy(remoteVideoRotateBtn, 'چرخاندن ویدیو', 'bottom');
     }
-    setTippy(remoteAudioStatusIcon, 'Audio status', 'bottom');
-    setTippy(remoteVideoPeerName, 'Username', 'top');
+    setTippy(remoteAudioStatusIcon, 'وضعیت صدا', 'bottom');
+    setTippy(remoteVideoPeerName, 'نام کاربری', 'top');
 }
 
 function handleIncomingDataChannelMessage(config) {
@@ -1152,8 +1152,8 @@ function handleEvents() {
         if (localStorageConfig.video.settings.best_quality) {
             popupMessage(
                 'toast',
-                'Max video quality and fps',
-                'If Active, The video resolution will be forced up to 8k and 60fps! (Very High bandwidth is required)',
+                'حداکثر کیفیت و فریم ویدیو',
+                'در صورت فعال بودن، وضوح ویدیو تا 8K و 60fps اعمال می‌شود! (پهنای باند بسیار بالا نیاز است)',
                 'top',
                 6000
             );
@@ -1176,8 +1176,8 @@ function handleEvents() {
             if (isPushToTalkActive) {
                 popupMessage(
                     'toast',
-                    'Push to talk',
-                    'If Active, When SpaceBar keydown the microphone will be activated, otherwise will be deactivated, like a walkie-talkie.',
+                    'برای صحبت نگه دار',
+                    'در صورت فعال بودن، با نگه داشتن کلید Space میکروفون فعال می‌شود مانند بی‌سیم.',
                     'top',
                     6000
                 );
@@ -1280,7 +1280,7 @@ function toggleSettings() {
 
 function swapCamera() {
     if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'Recording', 'Cannot swap camera while recording', 'top');
+        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان دوربین را تغییر داد', 'top');
     }
     camera = camera == 'user' ? 'environment' : 'user';
     const camVideo = camera == 'user' ? true : { facingMode: { exact: camera } };
@@ -1298,13 +1298,13 @@ function swapCamera() {
         })
         .catch((err) => {
             console.error('[Error] to swapping camera', err);
-            popupMessage('error', 'Swap camera', 'Error to swapping the camera ' + err);
+            popupMessage('error', 'تغییر دوربین', 'خطا در تغییر دوربین: ' + err);
         });
 }
 
 async function toggleScreenSharing() {
     if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'Recording', 'Cannot toggle screen sharing while recording', 'top');
+        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان اشتراک صفحه را تغییر داد', 'top');
     }
     const constraints = { audio: true, video: true };
     try {
@@ -1356,7 +1356,7 @@ async function toggleScreenSharing() {
 
 function changeCamera(deviceId = false) {
     if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'Recording', 'Cannot change camera while recording', 'top');
+        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان دوربین را تغییر داد', 'top');
     }
     const videoConstraints = getVideoConstraints(deviceId);
 
@@ -1386,13 +1386,13 @@ function changeCamera(deviceId = false) {
         })
         .catch((err) => {
             console.error('[Error] changeCamera', err);
-            popupMessage('error', 'Change camera', 'Error while swapping camera' + err);
+            popupMessage('error', 'تغییر دوربین', 'خطا هنگام تغییر دوربین: ' + err);
         });
 }
 
 function changeMicrophone(deviceId = false) {
     if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'Recording', 'Cannot change microphone while recording', 'top');
+        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان میکروفون را تغییر داد', 'top');
     }
     const audioConstraints = getAudioConstraints(deviceId);
 
@@ -1430,7 +1430,7 @@ function changeMicrophone(deviceId = false) {
         })
         .catch((err) => {
             console.error('[Error] changeMicrophone', err);
-            popupMessage('error', 'Change microphone', 'Error while swapping microphone' + err);
+            popupMessage('error', 'تغییر میکروفون', 'خطا هنگام تغییر میکروفون: ' + err);
         });
 }
 
@@ -1483,7 +1483,7 @@ async function playTestSound() {
         await audioToPlay.play();
     } catch (err) {
         console.error('[Error] playTestSound', err);
-        popupMessage('toast', 'Test speaker', 'Unable to play test sound', 'top');
+        popupMessage('toast', 'تست بلندگو', 'خطا در پخش صدای آزمایشی', 'top');
     }
 }
 
@@ -1629,11 +1629,11 @@ function giveMeFeedback() {
         background: swal.background,
         imageUrl: image.feedback,
         position: 'top',
-        title: 'Leave a feedback',
-        text: 'Do you want to rate your MiroTalk experience?',
-        confirmButtonText: `Yes`,
-        denyButtonText: `No`,
-        cancelButtonText: `Cancel`,
+        title: 'نظر بدهید',
+        text: 'می‌خواهید تجربه MiroTalk خود را امتیاز دهید؟',
+        confirmButtonText: `بله`,
+        denyButtonText: `خیر`,
+        cancelButtonText: `لغو`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -1747,8 +1747,8 @@ function refreshVideoConstraints() {
             console.error('refreshVideoConstraints', err);
             popupMessage(
                 'warning',
-                'Video quality/fps',
-                "Your device doesn't support the selected video quality and fps, please select the another one."
+                'کیفیت و فریم ویدیو',
+                'دستگاه شما از کیفیت و فریم انتخاب شده پشتیبانی نمی‌کند، لطفاً گزینه دیگری انتخاب کنید.'
             );
         });
 }
@@ -1971,7 +1971,7 @@ function toggleChat() {
 
 function saveChat() {
     if (chatMessages.length === 0) {
-        return popupMessage('toast', 'Chat', 'No chat messages to save', 'top-end');
+        return popupMessage('toast', 'چت', 'پیامی برای ذخیره وجود ندارد', 'top-end');
     }
     let a = document.createElement('a');
     a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(chatMessages, null, 1));
@@ -1984,15 +1984,15 @@ function saveChat() {
 
 function cleanChat() {
     if (chatMessages.length === 0) {
-        return popupMessage('toast', 'Chat', 'No chat messages to delete', 'top-end');
+        return popupMessage('toast', 'چت', 'پیامی برای حذف وجود ندارد', 'top-end');
     }
     Swal.fire({
         position: 'top',
-        title: 'Chat',
-        text: 'Clean up chat messages?',
+        title: 'چت',
+        text: 'پاک کردن پیام‌های چت؟',
         showDenyButton: true,
-        confirmButtonText: `Yes`,
-        denyButtonText: `No`,
+        confirmButtonText: `بله`,
+        denyButtonText: `خیر`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -2106,8 +2106,8 @@ function sendMessage() {
     if (!thereIsPeerConnections()) {
         popupMessage(
             'info',
-            'Chat',
-            'No peer is connected to the meeting. The message will be sent when a peer connects',
+            'چت',
+            'هیچ کاربری به جلسه متصل نیست. پیام پس از اتصال کاربر ارسال می‌شود',
             'top'
         );
         toggleChat();
@@ -2245,13 +2245,13 @@ function handlePeerStatus(config) {
         case 'recording':
             popupMessage(
                 'html',
-                'Recording',
-                `<div style="text-align: left;">
-                    🔴 &nbsp;The participant has 
+                'ضبط',
+                `<div style="text-align: right; direction: rtl;">
+                    🔴 &nbsp;شرکت‌کننده ضبط جلسه را
                     <span style="color: ${active ? 'green' : 'red'}">
-                        ${active ? 'started' : 'stopped'}
-                    </span> 
-                    recording the current session
+                        ${active ? 'شروع کرده' : 'متوقف کرده'}
+                    </span>
+                    است
                 </div>`,
                 'top'
             );
@@ -2307,7 +2307,7 @@ function toggleRecording() {
 
 function startRecording() {
     if (!isVideoStreaming && !isAudioStreaming) {
-        return popupMessage('toast', 'Video', "There isn't a video/audio stream to recording", 'top');
+        return popupMessage('toast', 'ویدیو', 'جریان ویدیو/صدایی برای ضبط وجود ندارد', 'top');
     } else {
         try {
             audioRecorder = new MixedAudioRecorder();
@@ -2346,7 +2346,7 @@ function startRecording() {
             // Notice for recording
             emitPeerStatus('recording', true);
         } catch (err) {
-            popupMessage('error', 'Recording', 'Exception while creating MediaRecorder: ' + err);
+            popupMessage('error', 'ضبط', 'خطا در ایجاد MediaRecorder: ' + err);
         }
     }
 }
@@ -2399,7 +2399,7 @@ function getRecordingStream(audioMixerTracks) {
         console.log('New Recording Media Stream tracks  --->', recordingStream.getTracks());
         return recordingStream;
     } catch (err) {
-        popupMessage('error', 'Recording', 'Unable to recording video + all participants audio: ' + err.message);
+        popupMessage('error', 'ضبط', 'خطا در ضبط ویدیو و صدای شرکت‌کنندگان: ' + err.message);
         return localMediaStream;
     }
 }

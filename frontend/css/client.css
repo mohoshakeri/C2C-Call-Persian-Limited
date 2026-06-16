@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap');
+@import url('https://lib.arvancloud.ir/vazir-font/33.003/Farsi-Digits/Vazirmatn-FD-font-face.css');
 
 /*--------------------------------------------------------------
 # Root settings
@@ -31,7 +31,7 @@
 }
 
 * {
-    font-family: 'Montserrat';
+    font-family: 'Vazirmatn FD';
     outline: none;
 }
 
@@ -686,11 +686,10 @@ video::-webkit-media-controls {
 }
 
 .settings-section-title {
-    font-size: 0.75rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -726,19 +725,20 @@ video::-webkit-media-controls {
     width: 100%;
     height: auto;
     max-width: 100%;
-    padding: 10px 36px 10px 12px;
+    padding: 10px 12px 10px 36px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     background-color: rgba(0, 0, 0, 0.3);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23f5f5f5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 12px center;
+    background-position: left 12px center;
     background-size: 10px;
     color: var(--text-color);
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vazirmatn FD', sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     box-sizing: border-box;
+    direction: rtl;
     transition:
         border-color 0.2s ease,
         box-shadow 0.2s ease;
@@ -949,55 +949,6 @@ video::-webkit-media-controls {
 
 .toggle:checked:before {
     left: 32px;
-}
-
-/*--------------------------------------------------------------
-# Google Translate
---------------------------------------------------------------*/
-
-.skiptranslate iframe,
-.goog-te-banner-frame.skiptranslate,
-.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
-.VIpgJd-ZVi9od-aZ2wEe-OiiCO,
-#goog-gt-tt,
-#goog-gt-tt *,
-#goog-gt-vt,
-#goog-gt-vt * {
-    display: none !important;
-}
-
-#google_translate_element select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 100%;
-    max-width: 280px;
-    padding: 10px 36px 10px 14px !important;
-    border: 1px solid var(--secondary-color) !important;
-    border-radius: 8px !important;
-    background-color: var(--primary-color) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23f5f5f5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 12px center !important;
-    background-size: 12px !important;
-    color: var(--text-color) !important;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-#google_translate_element select:hover {
-    border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-#google_translate_element select:focus {
-    outline: none;
-    border-color: var(--accent-color) !important;
-    box-shadow: 0 0 0 3px rgba(55, 109, 249, 0.2) !important;
 }
 
 /*--------------------------------------------------------------
