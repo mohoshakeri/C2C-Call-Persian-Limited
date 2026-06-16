@@ -10,12 +10,6 @@ const userNameIn = document.getElementById('userNameInput');
 const randomRoomBtn = document.getElementById('randomRoomBtn');
 const randomUserBtn = document.getElementById('randomUserBtn');
 const joinBtn = document.getElementById('joinBtn');
-const supportBtn = document.getElementById('supportBtn');
-
-const config = {
-    support: true,
-    //...
-};
 
 document.addEventListener('DOMContentLoaded', function () {
     initHome();
@@ -60,12 +54,6 @@ async function initHome() {
         }
     };
 
-    supportBtn.onclick = () => {
-        window.open('https://docs.mirotalk.com/about', '_blank');
-    };
-
-    !config.support && elementDisplay(supportBtn, false);
-    //...
 }
 
 function shuffleText(input, finalValue, duration = 600) {

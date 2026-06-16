@@ -194,7 +194,6 @@ const OIDCAuth = function (req, res, next) {
 const frontendDir = path.join(__dirname, '../', 'frontend');
 const htmlClient = path.join(__dirname, '../', 'frontend/html/client.html');
 const htmlHome = path.join(__dirname, '../', 'frontend/html/home.html');
-const htmlPrivacy = path.join(__dirname, '../', 'frontend/html/privacy.html');
 
 const channels = {};
 const sockets = {};
@@ -350,9 +349,6 @@ app.get('/', HomeOIDCAuth, (req, res) => {
     return serveHtml(res, htmlHome);
 });
 
-app.get('/privacy', (req, res) => {
-    return serveHtml(res, htmlPrivacy);
-});
 
 app.get(
     '/join/',
