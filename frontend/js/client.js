@@ -65,10 +65,6 @@ const chatSendBtn = document.getElementById('chatSendBtn');
 const chatFileBtn = document.getElementById('chatFileBtn');
 const chatFileInput = document.getElementById('chatFileInput');
 const chatEmoji = document.getElementById('chatEmoji');
-const recordingLabel = document.getElementById('recordingLabel');
-const recordingBtn = document.getElementById('recordingBtn');
-const recordingTime = document.getElementById('recordingTime');
-
 let chatMessages = []; // collect chat messages to save it later
 
 const roomURL = window.location.origin + '/?room=' + roomId;
@@ -188,9 +184,6 @@ let remoteMediaStream = null;
 let camera = 'user';
 let thisPeerId;
 let signalingSocket;
-let recording = null;
-let audioRecorder = null;
-let recordingTimer = null;
 let roomPeersCount = 0;
 let peersInfo = {};
 let peerDevice = {};
@@ -228,7 +221,6 @@ const tooltips = [
     { element: audioBtn, text: 'روشن/خاموش صدا', position: 'top' },
     { element: swapCameraBtn, text: 'تغییر دوربین', position: 'top' },
     { element: screenShareBtn, text: 'روشن/خاموش اشتراک صفحه', position: 'top' },
-    { element: recordingBtn, text: 'روشن/خاموش ضبط', position: 'top' },
     { element: chatOpenBtn, text: 'باز/بسته چت', position: 'top' },
     { element: settingsBtn, text: 'باز/بسته تنظیمات', position: 'top' },
     { element: leaveBtn, text: 'خروج از اتاق', position: 'top' },
@@ -1107,9 +1099,6 @@ function handleEvents() {
             elemDisplay(swapCameraBtn, false);
         }
     });
-    recordingBtn.onclick = () => {
-        toggleRecording();
-    };
     settingsBtn.onclick = () => {
         toggleSettings();
     };
@@ -1279,9 +1268,6 @@ function toggleSettings() {
 }
 
 function swapCamera() {
-    if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان دوربین را تغییر داد', 'top');
-    }
     camera = camera == 'user' ? 'environment' : 'user';
     const camVideo = camera == 'user' ? true : { facingMode: { exact: camera } };
     navigator.mediaDevices
@@ -1303,9 +1289,6 @@ function swapCamera() {
 }
 
 async function toggleScreenSharing() {
-    if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان اشتراک صفحه را تغییر داد', 'top');
-    }
     const constraints = { audio: true, video: true };
     try {
         let newStream;
@@ -1355,9 +1338,6 @@ async function toggleScreenSharing() {
 }
 
 function changeCamera(deviceId = false) {
-    if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان دوربین را تغییر داد', 'top');
-    }
     const videoConstraints = getVideoConstraints(deviceId);
 
     navigator.mediaDevices
@@ -1391,9 +1371,6 @@ function changeCamera(deviceId = false) {
 }
 
 function changeMicrophone(deviceId = false) {
-    if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'ضبط', 'هنگام ضبط نمی‌توان میکروفون را تغییر داد', 'top');
-    }
     const audioConstraints = getAudioConstraints(deviceId);
 
     navigator.mediaDevices
@@ -2246,20 +2223,6 @@ function handlePeerStatus(config) {
         case 'screen':
             setPeerScreenStatus(peerId, active);
             break;
-        case 'recording':
-            popupMessage(
-                'html',
-                'ضبط',
-                `<div style="text-align: right; direction: rtl;">
-                    🔴 &nbsp;شرکت‌کننده ضبط جلسه را
-                    <span style="color: ${active ? 'green' : 'red'}">
-                        ${active ? 'شروع کرده' : 'متوقف کرده'}
-                    </span>
-                    است
-                </div>`,
-                'top'
-            );
-            break;
         default:
             break;
     }
@@ -2299,140 +2262,6 @@ function updatePeerMediaDisplay(peerId, active, type) {
         peerVideo.style.objectFit =
             type === 'screen' ? 'contain' : localStorageConfig.video.settings.aspect_ratio ? 'contain' : 'cover';
     }
-}
-
-// =====================================================
-// Handle recording
-// =====================================================
-
-function toggleRecording() {
-    recording && recording.isStreamRecording() ? stopRecording() : startRecording();
-}
-
-function startRecording() {
-    if (!isVideoStreaming && !isAudioStreaming) {
-        return popupMessage('toast', 'ویدیو', 'جریان ویدیو/صدایی برای ضبط وجود ندارد', 'top');
-    } else {
-        try {
-            audioRecorder = new MixedAudioRecorder();
-
-            const audioStreamFromVideoElements = getAudioStreamFromVideoElements();
-            const audioStreamFromAudioElements = getAudioStreamFromAudioElements();
-            const audioStreams =
-                audioStreamFromVideoElements.getTracks().length > 0
-                    ? audioStreamFromVideoElements
-                    : audioStreamFromAudioElements;
-
-            console.log('Recording Audio streams tracks --->', audioStreams.getTracks());
-
-            const audioMixerStreams = audioRecorder.getMixedAudioStream(
-                audioStreams
-                    .getTracks()
-                    .filter((track) => track.kind === 'audio')
-                    .map((track) => new MediaStream([track]))
-            );
-
-            const audioMixerTracks = audioMixerStreams.getTracks();
-            console.log('Recording Audio mixer tracks --->', audioMixerTracks);
-
-            const recordingStream = getRecordingStream(audioMixerTracks);
-
-            recording = new Recording(
-                recordingStream,
-                recordingLabel,
-                recordingTime,
-                recordingBtn,
-                videoSource,
-                audioSource
-            );
-            recording.start();
-
-            // Notice for recording
-            emitPeerStatus('recording', true);
-        } catch (err) {
-            popupMessage('error', 'ضبط', 'خطا در ایجاد MediaRecorder: ' + err);
-        }
-    }
-}
-
-function getAudioStreamFromVideoElements() {
-    const videoElements = document.querySelectorAll('video');
-    const audioStream = new MediaStream();
-    videoElements.forEach((video) => {
-        if (video.srcObject) {
-            const audioTracks = video.srcObject.getAudioTracks();
-            if (audioTracks.length > 0) {
-                audioStream.addTrack(audioTracks[0]);
-            }
-        }
-    });
-    return audioStream;
-}
-
-function getAudioStreamFromAudioElements() {
-    const audioElements = document.querySelectorAll('audio');
-    const audioStream = new MediaStream();
-    audioElements.forEach((audio) => {
-        if (audio.srcObject) {
-            const audioTracks = audio.srcObject.getAudioTracks();
-            if (audioTracks.length > 0) {
-                audioStream.addTrack(audioTracks[0]);
-            }
-        }
-    });
-    return audioStream;
-}
-
-function getRecordingStream(audioMixerTracks) {
-    try {
-        const combinedTracks = [];
-
-        if (Array.isArray(audioMixerTracks)) {
-            combinedTracks.push(...audioMixerTracks);
-        }
-
-        if (localMediaStream !== null) {
-            const videoTracks = localMediaStream.getVideoTracks();
-            console.log('Recording video tracks --->', videoTracks);
-            if (Array.isArray(videoTracks)) {
-                combinedTracks.push(...videoTracks);
-            }
-        }
-
-        const recordingStream = new MediaStream(combinedTracks);
-        console.log('New Recording Media Stream tracks  --->', recordingStream.getTracks());
-        return recordingStream;
-    } catch (err) {
-        popupMessage('error', 'ضبط', 'خطا در ضبط ویدیو و صدای شرکت‌کنندگان: ' + err.message);
-        return localMediaStream;
-    }
-}
-
-function stopRecording() {
-    recording.stop();
-    if (audioRecorder) {
-        audioRecorder.stopMixedAudioStream();
-    }
-    emitPeerStatus('recording', false);
-}
-
-function saveRecording() {
-    if (recording && recording.isStreamRecording()) stopRecording();
-}
-
-function startRecordingTimer() {
-    let recElapsedTime = 0;
-    recordingTimer = setInterval(function printTime() {
-        if (recording.isStreamRecording()) {
-            recElapsedTime++;
-            recordingTime.innerText = secondsToHms(recElapsedTime);
-        }
-    }, 1000);
-}
-
-function stopRecordingTimer() {
-    clearInterval(recordingTimer);
-    recordingTimer = null;
 }
 
 // =====================================================
@@ -2574,7 +2403,6 @@ window.addEventListener(
 
 window.onbeforeunload = function (e) {
     saveLocalStorageConfig();
-    saveRecording();
     stopMediaStream(localMediaStream);
     cleanupPeerConnections();
     cleanupPeerMediaElements();

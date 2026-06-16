@@ -37,8 +37,6 @@
         <script defer src="../js/swal.js"></script>
         <script defer src="../js/utils.js"></script>
         <script defer src="../js/helpers.js"></script>
-        <script defer src="../js/fix-webm-duration.js"></script>
-        <script defer src="../js/recording.js"></script>
         <script defer src="../js/client.js"></script>
         <script defer src="../js/noise-processor.js"></script>
     </head>
@@ -92,7 +90,6 @@
             <button id="audioBtn" class="action-btn fas fa-microphone"></button>
             <button id="swapCameraBtn" class="action-btn fas fa-camera-rotate"></button>
             <button id="screenShareBtn" class="action-btn fas fa-desktop"></button>
-            <button id="recordingBtn" class="action-btn fas fa-record-vinyl"></button>
             <button id="chatOpenBtn" class="action-btn fas fa-comments"></button>
             <button id="settingsBtn" class="action-btn fas fa-cogs"></button>
             <button id="leaveBtn" class="action-btn fas fa-phone-slash red"></button>
@@ -173,10 +170,6 @@
 
             <div class="settings-section">
                 <div class="settings-section-title"><i class="fas fa-info-circle"></i> جلسه</div>
-                <div id="recordingDiv" class="settings-info-row">
-                    <label id="recordingLabel">🔴 ضبط</label>
-                    <span id="recordingTime">0s</span>
-                </div>
                 <div class="settings-info-row">
                     <label><i class="fas fa-clock"></i> زمان جلسه</label>
                     <span class="notranslate" id="sessionTime">0s</span>
