@@ -25,9 +25,9 @@ module.exports = class ServerApi {
     }
 
     // LIMITED mode: create a JWT-based time-limited session link
-    createSession(duration_minutes, session_name) {
+    createSession(duration_minutes, session_name, start_time_ms) {
         const room = uuidV4();
-        const start_time = Date.now();
+        const start_time = start_time_ms != null && Number.isFinite(start_time_ms) ? start_time_ms : Date.now();
         const duration_ms = (duration_minutes != null ? duration_minutes : 180) * 60 * 1000;
         const end_time = start_time + duration_ms;
 
@@ -38,7 +38,8 @@ module.exports = class ServerApi {
             end_time,
         };
 
-        const expiresInSec = Math.ceil(duration_ms / 1000) + 120;
+        // expiresIn is relative to now, so account for a future start_time
+        const expiresInSec = Math.ceil((end_time - Date.now()) / 1000) + 120;
         const token = jwt.sign(payload, this._jwt_secret, { expiresIn: expiresInSec });
         return this.getProtocol() + this._host + '/?token=' + token;
     }

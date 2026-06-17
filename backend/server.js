@@ -475,8 +475,12 @@ app.post(`${apiBasePath}/session`, (req, res) => {
         log.debug('LIMITED create session - Unauthorized', { header: req.headers });
         return res.status(403).json({ error: 'Unauthorized!' });
     }
-    const { duration_minutes, session_name } = req.body;
-    const link = api.createSession(duration_minutes != null ? Number(duration_minutes) : null, session_name || null);
+    const { duration_minutes, session_name, start_time } = req.body;
+    const link = api.createSession(
+        duration_minutes != null ? Number(duration_minutes) : null,
+        session_name || null,
+        start_time != null ? Number(start_time) : null,
+    );
     res.json({ link });
     log.debug('LIMITED create session - Authorized', { link });
 });

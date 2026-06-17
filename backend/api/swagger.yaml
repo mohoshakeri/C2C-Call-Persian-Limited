@@ -35,6 +35,10 @@ paths:
                               type: integer
                               description: 'Session duration in minutes. Null or omit for 3 hours.'
                               example: 60
+                          start_time:
+                              type: integer
+                              description: 'Optional session start time as a Unix timestamp in milliseconds. Defaults to now if omitted.'
+                              example: 1781650000000
                           session_name:
                               type: string
                               description: 'Optional display name for the session.'
