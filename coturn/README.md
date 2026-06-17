@@ -1,587 +1,278 @@
-# Beginner Guide: Install Your Own STUN/TURN Server With coturn
+# Coturn STUN/TURN Server Guide
 
-This guide installs only **coturn**.
+This folder installs and manages a standalone coturn server for WebRTC apps such as MiroTalk C2C.
 
-It does not install MiroTalk, Django, Node.js, Nginx, or any web app.
+The installer is intentionally strict about authenticated TURN. It writes both `/etc/turnserver.conf` and a systemd override so the running service explicitly includes `--lt-cred-mech` and `--user=...`. This avoids the failure mode where coturn answers an unauthenticated Allocate request with `0103` anonymous success, which Chrome rejects and reports as `701` with no relay candidate.
 
-coturn can work as:
+## Files
 
-- A **STUN server**.
-- A **TURN server**.
-- A **TURNS server** when TLS certificate is available.
+| File | Purpose |
+|---|---|
+| `install.sh` | Install coturn, configure authenticated TURN, configure UFW, start service. |
+| `debug.sh` | Collect service, config, auth, firewall, logs, and packet capture diagnostics. |
+| `uninstall.sh` | Remove coturn package, config, DB, logs, systemd override, generated output, and installer state. |
+| `.env.example` | Example installer environment variables. |
 
-At the end, the script prints ready-to-copy values like:
+## Requirements
 
-```env
-STUN_SERVER_URL=stun:turn.example.com:3478
-TURN_SERVER_URL=turn:turn.example.com:3478
-TURN_SERVER_USERNAME=mirotalk
-TURN_SERVER_CREDENTIAL=generated-password
-```
+Use a fresh Ubuntu/Debian VPS with:
 
----
+- Root or sudo access.
+- A public IPv4 address.
+- Provider firewall access, if your provider has one.
+- Optional DNS name such as `turn.example.com` for `turns:` TLS.
 
-## 1. What Is STUN/TURN?
+Plain `turn:` does not require a domain or SSL certificate. `turns:` requires a domain and certificate.
 
-### STUN
+## Ports
 
-STUN helps WebRTC clients discover their public IP and port.
-
-```text
-Browser -> STUN Server -> Public Address Discovery
-```
-
-STUN does not relay video or audio.
-
-### TURN
-
-TURN is used when direct peer-to-peer connection fails.
+Open these in the VPS provider firewall, not only UFW:
 
 ```text
-Browser A -> TURN Server -> Browser B
-```
-
-TURN relays media, so it consumes server bandwidth.
-
-coturn provides both STUN and TURN.
-
----
-
-## 2. What You Need
-
-You need:
-
-1. A VPS with Ubuntu 22.04 or Ubuntu 24.04.
-2. Root or sudo SSH access.
-3. A public IPv4 address.
-4. Optional but recommended: a domain or subdomain like:
-
-```text
-turn.example.com
-```
-
-A domain is required if you want `turns:` TLS support.
-
----
-
-## 3. Recommended Server Size
-
-For testing:
-
-```text
-1 vCPU
-1 GB RAM
-Ubuntu 22.04 Or 24.04
-```
-
-For more real users:
-
-```text
-2 vCPU
-2 GB RAM
-Good Network Bandwidth
-```
-
-TURN uses bandwidth when it relays calls. CPU is usually less important than network traffic.
-
----
-
-## 4. Connect To VPS With SSH
-
-### Windows
-
-Open PowerShell:
-
-```bash
-ssh root@YOUR_SERVER_IP
-```
-
-Example:
-
-```bash
-ssh root@203.0.113.10
-```
-
-Type `yes` if SSH asks to trust the server.
-
-Then enter the password.
-
-### macOS Or Linux
-
-Open Terminal:
-
-```bash
-ssh root@YOUR_SERVER_IP
-```
-
-Example:
-
-```bash
-ssh root@203.0.113.10
-```
-
----
-
-## 5. Update The Server
-
-Run:
-
-```bash
-apt update && apt upgrade -y
-```
-
----
-
-## 6. Configure DNS In ArvanCloud
-
-If you have a domain, create a subdomain for TURN.
-
-Example:
-
-```text
-turn.example.com
-```
-
-### Add DNS Record
-
-In ArvanCloud DNS panel, create this record:
-
-| Type | Name | Value | Proxy / Cloud |
-|---|---|---|---|
-| A | turn | Your VPS IP | DNS Only / Cloud Off |
-
-Example:
-
-```text
-A    turn    203.0.113.10
-```
-
-Important:
-
-```text
-TURN must be DNS Only / Cloud Off.
-```
-
-Do not proxy TURN traffic through CDN. TURN is not normal HTTP traffic.
-
-### Check DNS
-
-On your VPS:
-
-```bash
-dig +short turn.example.com
-```
-
-It should print your VPS IP.
-
----
-
-## 7. Open Ports In VPS Provider Firewall
-
-Open these ports in your VPS provider panel:
-
-```text
-22/tcp
-80/tcp
-3478/tcp
 3478/udp
-5349/tcp
-49160-49200/udp
+3478/tcp
+49160-65535/udp
 ```
 
-Why each port is needed:
-
-| Port | Protocol | Purpose |
-|---|---|---|
-| 22 | TCP | SSH |
-| 80 | TCP | Let's Encrypt Certificate Validation |
-| 3478 | TCP/UDP | STUN/TURN |
-| 5349 | TCP | TURNS TLS |
-| 49160-49200 | UDP | TURN Relay Media Ports |
-
-The script also configures Ubuntu UFW firewall, but provider firewall must allow these ports too.
-
----
-
-## 8. Create The Installer File
-
-On the VPS:
-
-```bash
-nano install.sh
-```
-
-Paste the script content into nano.
-
-Save:
+If using TLS TURN:
 
 ```text
-Ctrl + O
-Enter
-Ctrl + X
+80/tcp
+5349/tcp
 ```
 
-Make it executable:
+The relay range is large by default because TURN consumes relay UDP ports during calls. You can reduce it, but the same range must be open in every firewall.
 
-```bash
-chmod +x install.sh
-```
+## Install With IP Only
 
----
-
-## 9. Install With Domain And TLS
-
-Use this for production:
-
-```bash
-sudo TURN_DOMAIN=turn.example.com \
-ADMIN_EMAIL=admin@example.com \
-./install.sh
-```
-
-The script will:
-
-1. Install coturn.
-2. Detect public IP.
-3. Generate TURN password.
-4. Configure coturn.
-5. Configure firewall.
-6. Request Let's Encrypt certificate.
-7. Start coturn.
-8. Print final STUN/TURN settings.
-
----
-
-## 10. Install Without Domain
-
-Use this for IP-based testing:
+Use this when you do not have a TURN domain:
 
 ```bash
 sudo ENABLE_TLS=false ./install.sh
 ```
 
-At the end, you will get:
+The final output will include values like:
 
 ```env
+STUN_SERVER_ENABLED=true
 STUN_SERVER_URL=stun:YOUR_SERVER_IP:3478
-TURN_SERVER_URL=turn:YOUR_SERVER_IP:3478
+
+TURN_SERVER_ENABLED=true
+TURN_SERVER_URL=turn:YOUR_SERVER_IP:3478?transport=udp
+TURN_SERVER_USERNAME=mirotalk
+TURN_SERVER_CREDENTIAL=generated-password
 ```
 
-This is okay for testing.
+## Install With Domain And TLS
 
-For production, a domain is better.
+Create a DNS-only A record first:
 
----
+```text
+turn.example.com -> YOUR_SERVER_IP
+```
 
-## 11. Use Custom Username And Password
+Do not proxy TURN through CDN/cloud proxy.
+
+Then run:
 
 ```bash
 sudo TURN_DOMAIN=turn.example.com \
 ADMIN_EMAIL=admin@example.com \
-TURN_USER=myuser \
-TURN_PASSWORD='VeryStrongPasswordHere' \
 ./install.sh
 ```
 
-If you do not provide `TURN_PASSWORD`, the script generates one.
+The script requests a Let's Encrypt certificate and also prints:
 
----
-
-## 12. Final Output Example
-
-The final output looks like this:
-
-```text
-Coturn STUN/TURN Installation Finished
-
-Public IPv4:
-203.0.113.10
-
-TURN Host:
-turn.example.com
-
-Plain STUN/TURN:
-STUN_SERVER_ENABLED=true
-STUN_SERVER_URL=stun:turn.example.com:3478
-
-TURN_SERVER_ENABLED=true
-TURN_SERVER_URL=turn:turn.example.com:3478
-TURN_SERVER_USERNAME=mirotalk
-TURN_SERVER_CREDENTIAL=generated-password
-
-TLS TURN:
-TURN_SERVER_URL_TLS=turns:turn.example.com:5349
+```env
+TURN_SERVER_URL_TLS=turns:turn.example.com:5349?transport=tcp
 ```
 
-The output is also saved here:
+Most deployments should still start with plain UDP TURN:
+
+```env
+TURN_SERVER_URL=turn:turn.example.com:3478?transport=udp
+```
+
+## Custom Username And Password
 
 ```bash
-/root/coturn-stun-turn-output.txt
+sudo TURN_USER=mirotalk \
+TURN_PASSWORD='StrongSafePassword123' \
+ENABLE_TLS=false \
+./install.sh
 ```
 
-You can read it later:
+If `TURN_PASSWORD` is empty, the installer generates a strong hex password. Use only safe characters in custom credentials: letters, digits, `.`, `_`, `~`, `@`, `#`, `=`, `+`, `-`.
 
-```bash
-cat /root/coturn-stun-turn-output.txt
-```
+## Use In MiroTalk C2C
 
----
-
-## 13. Use In MiroTalk C2C
-
-Put the final values into your MiroTalk `.env`:
+Set these environment variables exactly. `true` must be lowercase because the app checks for the string `true`.
 
 ```env
 STUN_SERVER_ENABLED=true
-STUN_SERVER_URL=stun:turn.example.com:3478
+STUN_SERVER_URL=stun:YOUR_TURN_HOST:3478
 
 TURN_SERVER_ENABLED=true
-TURN_SERVER_URL=turn:turn.example.com:3478
+TURN_SERVER_URL=turn:YOUR_TURN_HOST:3478?transport=udp
 TURN_SERVER_USERNAME=mirotalk
 TURN_SERVER_CREDENTIAL=generated-password
 ```
 
-If your app supports TLS TURN, you can also try:
+For a TCP fallback, use:
 
 ```env
-TURN_SERVER_URL=turns:turn.example.com:5349
+TURN_SERVER_URL=turn:YOUR_TURN_HOST:3478?transport=tcp
 ```
 
-Most setups work fine with:
+For TLS TURN with a domain:
 
 ```env
-turn:turn.example.com:3478
+TURN_SERVER_URL=turns:turn.example.com:5349?transport=tcp
 ```
 
----
+## Verify In Browser
 
-## 14. Test In Browser
-
-Open this WebRTC ICE test page:
+Use Trickle ICE:
 
 ```text
 https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
 ```
 
-Add your STUN server:
+Add:
 
 ```text
-stun:turn.example.com:3478
+turn:YOUR_TURN_HOST:3478?transport=udp
 ```
 
-Add your TURN server:
+Enter the username and password printed by `install.sh`, then gather candidates. A working TURN server produces at least one `relay` candidate.
+
+A `701` error means the browser could not complete TURN allocation. It is not by itself proof of a password problem.
+
+## Low-Level Auth Sanity Check
+
+If relay candidates are missing, capture the first UDP exchange while testing:
+
+```bash
+OUT=/tmp/turn3478-$(date +%s).pcap
+timeout 20 tcpdump -ni any -s 0 -U -w "$OUT" 'udp port 3478'
+tcpdump -nn -vvv -X -r "$OUT" | sed -n '1,180p'
+```
+
+For authenticated TURN, the first unauthenticated Allocate response should be:
 
 ```text
-turn:turn.example.com:3478
+0113
 ```
 
-Username:
+That is the normal `401 Unauthorized` challenge containing realm/nonce.
+
+If the first response is:
 
 ```text
-mirotalk
+0103
 ```
 
-Password:
+coturn is allowing anonymous Allocate success. Chrome rejects that flow for configured TURN credentials. Re-run `install.sh` and confirm the active command line contains `--lt-cred-mech`.
+
+Check the active command line:
+
+```bash
+pgrep -a turnserver
+```
+
+It must include:
 
 ```text
-your generated password
+--lt-cred-mech
+--user=USERNAME:PASSWORD
 ```
 
-Click **Gather candidates**.
-
-If you see candidates with type `relay`, TURN works.
-
----
-
-## 15. Check Service Status
-
-```bash
-sudo systemctl status coturn
-```
-
-Restart coturn:
-
-```bash
-sudo systemctl restart coturn
-```
-
-View logs:
-
-```bash
-sudo tail -f /var/log/turnserver.log
-```
-
-Edit config:
-
-```bash
-sudo nano /etc/turnserver.conf
-```
-
-After editing config:
-
-```bash
-sudo systemctl restart coturn
-```
-
----
-
-## 16. Increase Capacity
-
-The default relay range is:
+It must not include:
 
 ```text
-49160-49200/udp
+--no-auth
 ```
 
-For more concurrent TURN relays, use a bigger range:
+## Debug
+
+Run:
 
 ```bash
-sudo TURN_DOMAIN=turn.example.com \
-ADMIN_EMAIL=admin@example.com \
-TURN_MIN_PORT=49160 \
-TURN_MAX_PORT=49360 \
-./install.sh
+sudo bash debug.sh
 ```
 
-Also open the same UDP range in your VPS provider firewall.
+During the packet capture window, run your browser TURN test. The script writes a full report and archive under `/tmp/coturn-debug-*`.
 
----
-
-## 17. Common Problems
-
-### DNS Does Not Point To Server
-
-Check:
+Useful options:
 
 ```bash
-dig +short turn.example.com
+sudo CAPTURE_SECONDS=0 bash debug.sh
+sudo CAPTURE_SECONDS=60 bash debug.sh
+sudo TURN_PORT=3478 TURN_MIN_PORT=49160 TURN_MAX_PORT=65535 bash debug.sh
 ```
 
-It must show your VPS IP.
+The debug report includes:
 
-### TLS Certificate Fails
+- coturn service status and systemd override.
+- Active process command line.
+- Open log file descriptors, including deleted `/var/tmp/turn_*.log` files.
+- `/etc/turnserver.conf` and `/etc/default/coturn`.
+- SQLite TURN users from `/var/lib/turn/turndb`.
+- UFW, nftables, iptables state.
+- Listening sockets.
+- Journal and coturn logs.
+- Packet capture and hex decode.
 
-Make sure:
+## Uninstall And Reinstall Test
 
-1. `turn.example.com` points to your VPS IP.
-2. Port `80/tcp` is open.
-3. No other service is using port 80.
-
-Then rerun:
+To remove the installation:
 
 ```bash
-sudo TURN_DOMAIN=turn.example.com ADMIN_EMAIL=admin@example.com ./install.sh
+sudo bash uninstall.sh
 ```
 
-### STUN Works But TURN Does Not
+Then install again:
 
-Check UDP ports:
+```bash
+sudo ENABLE_TLS=false ./install.sh
+```
+
+A clean reinstall should still produce relay candidates.
+
+The installer records state in `/var/lib/coturn-installer/state.env`. If it enabled UFW from an inactive state, `uninstall.sh` disables UFW again by default. By default, `uninstall.sh` does not delete Let's Encrypt certificates. To remove a TURN certificate too:
+
+```bash
+sudo REMOVE_CERTS=true TURN_DOMAIN=turn.example.com bash uninstall.sh
+```
+
+## Common Problems
+
+### STUN Works But Relay Does Not
+
+STUN only proves public address discovery. TURN relay also needs authenticated allocation and relay UDP ports. Check:
 
 ```text
 3478/udp
-49160-49200/udp
+3478/tcp
+49160-65535/udp
 ```
 
-They must be open both in Ubuntu firewall and VPS provider firewall.
+### No Logs In journalctl
 
-### No Relay Candidate In Trickle ICE Test
+coturn may log to files instead of journald. Run `debug.sh`; it discovers the active log through `/proc/<pid>/fd`, even if coturn opened a deleted `/var/tmp/turn_*.log` file.
 
-Check:
+### Provider Says There Is No Firewall
 
-1. Correct username.
-2. Correct password.
-3. Correct TURN URL.
-4. UDP relay range is open.
-5. coturn is running.
+Still verify packet flow with `debug.sh` or `tcpdump`. If packets arrive and responses leave, firewall is not the primary issue.
 
-Command:
+### DNS Or CDN Proxy
 
-```bash
-sudo systemctl status coturn
-```
+TURN must be DNS-only. Do not proxy TURN through ArvanCloud/Cloudflare/CDN HTTP proxy.
 
-### ArvanCloud Proxy Is Enabled
+### Limited Session Capacity
 
-Set the record to:
+Each relayed call consumes relay resources and UDP ports. Keep a broad range such as `49160-65535/udp` for production unless you have a reason to cap capacity.
 
-```text
-DNS Only / Cloud Off
-```
+## Security Notes
 
-TURN does not work correctly through normal CDN proxy.
-
----
-
-## 18. Security Notes
-
-Use a strong TURN password.
-
-Do not expose the coturn CLI.
-
-The script uses:
-
-```text
-no-cli
-```
-
-Do not create open TURN relay servers without authentication.
-
-The script uses:
-
-```text
-lt-cred-mech
-user=username:password
-```
-
----
-
-## 19. Uninstall
-
-Stop coturn:
-
-```bash
-sudo systemctl stop coturn
-sudo systemctl disable coturn
-```
-
-Remove package:
-
-```bash
-sudo apt remove coturn -y
-```
-
-Remove config:
-
-```bash
-sudo rm -f /etc/turnserver.conf
-sudo rm -f /root/coturn-stun-turn-output.txt
-```
-
----
-
-## 20. Change Password
-
-Open `nano /etc/turnserver.conf`
-Change password.
-
----
-
-## 21. Files Created By The Installer
-
-Main config:
-
-```text
-/etc/turnserver.conf
-```
-
-Output credentials:
-
-```text
-/root/coturn-stun-turn-output.txt
-```
-
-Log file:
-
-```text
-/var/log/turnserver.log
-```
+Use a strong TURN password. Do not expose coturn CLI. Keep provider firewall scoped to the required ports. Rotate credentials if they are shared outside trusted deployment channels.
