@@ -8,7 +8,8 @@ A fork of **[MiroTalk C2C](https://github.com/miroslavpejic85/mirotalkc2c)** by 
 
 - **LIMITED mode** — API-only, JWT-based time-limited sessions (`LIMITED=true` in `.env`).  
   Rooms are created via `POST /api/v1/session`; users join via a signed link; the session auto-ends when time expires.
-- Persian (Farsi) UI improvements — Vazirmatn font, RTL-friendly session name display.
+- **Persian (Farsi) UI** — Vazirmatn font, RTL-friendly session name display.
+- **Optimized Client** — Optimized WebRTC mobile-to-mobile calls with adaptive media profiles for smoother audio and video.
 
 ## Quick start
 
