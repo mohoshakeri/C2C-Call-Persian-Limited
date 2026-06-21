@@ -172,6 +172,8 @@ const browserName = result.browser.name;
 const browserVersion = result.browser.version;
 const isFirefox = browserName.toLowerCase().includes('firefox');
 const isSafari = browserName.toLowerCase().includes('safari');
+const isAndroidDevice = osName?.toLowerCase().includes('android');
+const useMobileMediaProfile = isMobileDevice || isTabletDevice || isIPadDevice || isAndroidDevice;
 
 let isVideoStreaming = false;
 let isAudioStreaming = false;
@@ -205,6 +207,35 @@ let myAudioStatusIcon;
 
 let videoQualitySelectedIndex = 0;
 let videoFpsSelectedIndex = 0;
+let activeMobileMediaProfileName = null;
+
+const MOBILE_VIDEO_LIMITS = {
+    width: 640,
+    height: 360,
+    frameRate: 20,
+    maxBitrate: 450000,
+};
+
+const MOBILE_AUDIO_LIMITS = {
+    maxBitrate: 32000,
+};
+
+const MOBILE_TO_MOBILE_VIDEO_LIMITS = {
+    width: 480,
+    height: 270,
+    frameRate: 15,
+    maxBitrate: 280000,
+};
+
+const MOBILE_TO_MOBILE_AUDIO_LIMITS = {
+    maxBitrate: 24000,
+};
+
+if (useMobileMediaProfile && localStorageConfig?.audio?.settings?.noise_suppression) {
+    localStorageConfig.audio.settings.noise_suppression = false;
+    LS.setConfig(localStorageConfig);
+    console.log('Mobile device detected: RNNoise disabled by default to reduce audio latency and CPU load');
+}
 
 let surveyURL = false;
 let redirectURL = false;
@@ -308,6 +339,11 @@ function joinToChannel() {
             osVersion: osVersion,
             browserName: browserName,
             browserVersion: browserVersion,
+            isMobileDevice: isMobileDevice,
+            isTabletDevice: isTabletDevice,
+            isIPadDevice: isIPadDevice,
+            isDesktopDevice: isDesktopDevice,
+            isAndroidDevice: isAndroidDevice,
         },
         peerDevice: {
             userAgent: userAgent,
@@ -316,6 +352,7 @@ function joinToChannel() {
             isTabletDevice: isTabletDevice,
             isIPadDevice: isIPadDevice,
             isDesktopDevice: isDesktopDevice,
+            isAndroidDevice: isAndroidDevice,
         },
     });
     playSound('join');
@@ -345,7 +382,11 @@ function handleAddPeer(config) {
     elemDisplay(buttonsBar, true, 'flex');
     animateCSS(buttonsBar, 'fadeInUp');
 
-    const peerConnection = new RTCPeerConnection({ iceServers: iceServers });
+    const peerConnection = new RTCPeerConnection({
+        iceServers: iceServers,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
+    });
     peerConnections[peerId] = peerConnection;
 
     handlePeersConnectionStatus(peerId);
@@ -353,6 +394,7 @@ function handleAddPeer(config) {
     handleRTCDataChannels(peerId);
     handleOnTrack(peerId);
     handleAddTracks(peerId);
+    applyMobileMediaProfileIfNeeded('peer-added');
 
     if (shouldCreateOffer) {
         handleRtcOffer(peerId);
@@ -500,7 +542,8 @@ function handleAddTracks(peerId) {
         if (!videoTrack) {
             videoTrack = getBlackVideoTrack();
         }
-        pc.addTrack(videoTrack, localMediaStream);
+        const sender = pc.addTrack(videoTrack, localMediaStream);
+        tuneSenderEncoding(sender, 'video');
     }
 
     // Always add audio track (real or dummy) if not already added
@@ -510,7 +553,99 @@ function handleAddTracks(peerId) {
         if (!audioTrack) {
             audioTrack = getSilentAudioTrack();
         }
-        pc.addTrack(audioTrack, localMediaStream);
+        const sender = pc.addTrack(audioTrack, localMediaStream);
+        tuneSenderEncoding(sender, 'audio');
+    }
+}
+
+function tuneSenderEncoding(sender, kind) {
+    if (!sender || typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') return;
+    if (!useMobileMediaProfile) return;
+
+    try {
+        const params = sender.getParameters();
+        params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
+        const encoding = params.encodings[0];
+
+        if (kind === 'video') {
+            const limits = getMobileVideoLimits();
+            encoding.maxBitrate = limits.maxBitrate;
+            encoding.maxFramerate = limits.frameRate;
+            encoding.priority = 'low';
+            params.degradationPreference = 'maintain-framerate';
+        }
+
+        if (kind === 'audio') {
+            encoding.maxBitrate = getMobileAudioLimits().maxBitrate;
+            encoding.priority = 'high';
+        }
+
+        const setParametersResult = sender.setParameters(params);
+        if (setParametersResult && typeof setParametersResult.catch === 'function') {
+            setParametersResult.catch((err) => console.warn(`Unable to tune ${kind} sender encoding`, err));
+        }
+    } catch (err) {
+        console.warn(`Unable to tune ${kind} sender encoding`, err);
+    }
+}
+
+function isPeerMobileLike(peer) {
+    if (!peer) return false;
+    if (peer.isMobileDevice || peer.isTabletDevice || peer.isIPadDevice || peer.isAndroidDevice) return true;
+    return /android|ios|ipad|iphone/i.test(peer.osName || '');
+}
+
+function hasMobileRemotePeer() {
+    return Object.entries(peersInfo).some(([peerId, peer]) => peerId !== thisPeerId && isPeerMobileLike(peer));
+}
+
+function getMobileMediaProfileName() {
+    return useMobileMediaProfile && hasMobileRemotePeer() ? 'mobile-to-mobile' : 'mobile';
+}
+
+function getMobileVideoLimits() {
+    return getMobileMediaProfileName() === 'mobile-to-mobile' ? MOBILE_TO_MOBILE_VIDEO_LIMITS : MOBILE_VIDEO_LIMITS;
+}
+
+function getMobileAudioLimits() {
+    return getMobileMediaProfileName() === 'mobile-to-mobile' ? MOBILE_TO_MOBILE_AUDIO_LIMITS : MOBILE_AUDIO_LIMITS;
+}
+
+function retunePeerSenderEncodings() {
+    Object.values(peerConnections).forEach((pc) => {
+        pc.getSenders().forEach((sender) => {
+            if (sender.track) tuneSenderEncoding(sender, sender.track.kind);
+        });
+    });
+}
+
+async function applyMobileMediaProfileIfNeeded(reason) {
+    if (!useMobileMediaProfile) return;
+
+    const profileName = getMobileMediaProfileName();
+    if (activeMobileMediaProfileName === profileName) return;
+
+    activeMobileMediaProfileName = profileName;
+
+    const videoTrack = localMediaStream?.getVideoTracks()[0];
+    if (!videoTrack) {
+        retunePeerSenderEncodings();
+        return;
+    }
+
+    const limits = getMobileVideoLimits();
+    try {
+        await videoTrack.applyConstraints({
+            width: { ideal: limits.width, max: limits.width },
+            height: { ideal: limits.height, max: limits.height },
+            frameRate: { ideal: limits.frameRate, max: limits.frameRate },
+        });
+        applyLocalTrackHints(localMediaStream);
+        retunePeerSenderEncodings();
+        console.log(`Applied ${profileName} media profile (${reason})`, limits);
+    } catch (err) {
+        activeMobileMediaProfileName = null;
+        console.warn(`Unable to apply ${profileName} media profile`, err);
     }
 }
 
@@ -582,6 +717,8 @@ function handleRemovePeer(config) {
     delete dataChannels[peerId];
     delete peerConnections[peerId];
     delete peerMediaElements[peerId];
+    delete peersInfo[peerId];
+    activeMobileMediaProfileName = null;
 
     if (!thereIsPeerConnections()) {
         elemDisplay(waitingDivContainer, true);
@@ -713,7 +850,18 @@ function createAudioElement(id, stream, muted = false) {
     return audio;
 }
 
+function applyLocalTrackHints(stream) {
+    if (!stream) return;
+    stream.getAudioTracks().forEach((track) => {
+        if ('contentHint' in track) track.contentHint = 'speech';
+    });
+    stream.getVideoTracks().forEach((track) => {
+        if ('contentHint' in track && useMobileMediaProfile) track.contentHint = 'motion';
+    });
+}
+
 function setLocalMedia(stream) {
+    applyLocalTrackHints(stream);
     localMediaStream = stream;
 
     const hasVideo = hasVideoTrack(stream);
@@ -1163,7 +1311,7 @@ function handleEvents() {
         changeAspectRatio(localStorageConfig.video.settings.aspect_ratio);
         playSound('switch');
     };
-    if (isMobileDevice) {
+    if (useMobileMediaProfile) {
         elemDisplay(maxVideoQualityDiv, false);
         elemDisplay(pushToTalkDiv, false);
     } else {
@@ -1277,7 +1425,10 @@ function toggleSettings() {
 
 function swapCamera() {
     camera = camera == 'user' ? 'environment' : 'user';
-    const camVideo = camera == 'user' ? true : { facingMode: { exact: camera } };
+    const camVideo = getVideoConstraints();
+    if (camVideo && typeof camVideo === 'object') {
+        camVideo.facingMode = camera == 'user' ? { ideal: camera } : { exact: camera };
+    }
     navigator.mediaDevices
         .getUserMedia({ video: camVideo })
         .then((camStream) => {
@@ -1309,7 +1460,10 @@ async function toggleScreenSharing() {
                 '✅ Noise suppression applied to screen sharing audio'
             );
         } else {
-            newStream = await getBestUserMedia(constraints);
+            newStream = await getBestUserMedia({
+                audio: getAudioConstraints(audioSource?.value),
+                video: getVideoConstraints(videoSource?.value),
+            });
             newStream = await applyNoiseSuppressionWithLogging(
                 newStream,
                 '✅ Noise suppression restored after screen sharing'
@@ -1420,11 +1574,15 @@ function changeMicrophone(deviceId = false) {
 }
 
 function getAudioConstraints(deviceId = null) {
-    const useRNNoise = typeof RNNoiseProcessor !== 'undefined' && RNNoiseProcessor.isSupported();
+    const rnNoiseEnabled = !useMobileMediaProfile && localStorageConfig?.audio?.settings?.noise_suppression;
+    const useRNNoise = rnNoiseEnabled && typeof RNNoiseProcessor !== 'undefined' && RNNoiseProcessor.isSupported();
     const audioConstraints = {
         echoCancellation: true,
         autoGainControl: true,
-        noiseSuppression: !useRNNoise, // Use native suppression if RNNoise is not supported
+        noiseSuppression: !useRNNoise, // Use native suppression unless RNNoise is active
+        channelCount: { ideal: 1 },
+        sampleRate: { ideal: 48000 },
+        sampleSize: { ideal: 16 },
     };
     // Safari and Firefox work better with 'ideal' instead of 'exact'
     if (deviceId) {
@@ -1474,24 +1632,47 @@ async function playTestSound() {
 
 function getVideoConstraints(deviceId = false) {
     let videoConstraints = true;
+    const mobileVideoLimits = getMobileVideoLimits();
 
     elemDisable(videoQualitySelect, localStorageConfig.video.settings.best_quality);
     elemDisable(videoFpsSelect, localStorageConfig.video.settings.best_quality);
 
     if (localStorageConfig.video.settings.best_quality) {
         resetVideoConstraints();
-        videoConstraints = {
-            width: { ideal: 7680 },
-            height: { ideal: 4320 },
-            frameRate: { ideal: 60 },
-        };
+        videoConstraints = useMobileMediaProfile
+            ? {
+                  width: {
+                      ideal: mobileVideoLimits.width,
+                      max: mobileVideoLimits.width,
+                  },
+                  height: {
+                      ideal: mobileVideoLimits.height,
+                      max: mobileVideoLimits.height,
+                  },
+                  frameRate: {
+                      ideal: mobileVideoLimits.frameRate,
+                      max: mobileVideoLimits.frameRate,
+                  },
+              }
+            : {
+                  width: { ideal: 7680 },
+                  height: { ideal: 4320 },
+                  frameRate: { ideal: 60 },
+              };
     } else {
         const videoQuality = videoQualitySelect.value;
-        const videoFrameRate = videoFpsSelect.value === 'default' ? 30 : parseInt(videoFpsSelect.value, 10);
+        const videoFrameRate =
+            videoFpsSelect.value === 'default'
+                ? useMobileMediaProfile
+                    ? mobileVideoLimits.frameRate
+                    : 30
+                : parseInt(videoFpsSelect.value, 10);
 
         // Define base quality dimensions
         const qualityDimensions = {
-            default: { width: 1280, height: 720 },
+            default: useMobileMediaProfile
+                ? { width: mobileVideoLimits.width, height: mobileVideoLimits.height }
+                : { width: 1280, height: 720 },
             qvga: { width: 320, height: 240 },
             vga: { width: 640, height: 480 },
             hd: { width: 1280, height: 720 },
@@ -1504,15 +1685,18 @@ function getVideoConstraints(deviceId = false) {
 
         // Helper function to create constraint type based on browser
         const createConstraintType = (value) => ({
-            [isFirefox || isSafari || videoQuality === 'default' ? 'ideal' : 'exact']: value,
+            [useMobileMediaProfile || isFirefox || isSafari || videoQuality === 'default' ? 'ideal' : 'exact']: value,
         });
+
+        const createDimensionConstraint = (value, maximum) =>
+            useMobileMediaProfile ? { ideal: Math.min(value, maximum), max: maximum } : createConstraintType(value);
 
         // Build video constraints from dimensions
         const dimensions = qualityDimensions[videoQuality];
         if (dimensions) {
             videoConstraints = {
-                width: createConstraintType(dimensions.width),
-                height: createConstraintType(dimensions.height),
+                width: createDimensionConstraint(dimensions.width, mobileVideoLimits.width),
+                height: createDimensionConstraint(dimensions.height, mobileVideoLimits.height),
             };
         }
 
@@ -1520,10 +1704,23 @@ function getVideoConstraints(deviceId = false) {
         if (videoQuality === 'default') {
             videoFpsSelect.disabled = true;
             videoFpsSelect.selectedIndex = 0;
+            if (videoConstraints !== true && !isFirefox && !isSafari) {
+                videoConstraints.frameRate = useMobileMediaProfile
+                    ? {
+                          ideal: mobileVideoLimits.frameRate,
+                          max: mobileVideoLimits.frameRate,
+                      }
+                    : { ideal: videoFrameRate };
+            }
         } else if (videoConstraints !== true) {
             // Only add frameRate for non-Firefox and non-Safari browsers
             if (!isFirefox && !isSafari) {
-                videoConstraints.frameRate = createConstraintType(videoFrameRate);
+                videoConstraints.frameRate = useMobileMediaProfile
+                    ? {
+                          ideal: Math.min(videoFrameRate, mobileVideoLimits.frameRate),
+                          max: mobileVideoLimits.frameRate,
+                      }
+                    : createConstraintType(videoFrameRate);
             }
             videoFpsSelect.disabled = false;
         }
@@ -1585,7 +1782,10 @@ function loadLocalStorageConfig() {
     if (isAudioOutputSupported() && audioOutputSource.options.length > 0) {
         audioOutputSource.selectedIndex = localStorageConfig?.speaker?.devices?.select?.index ?? 0;
     }
-    switchNoiseSuppression.checked = localStorageConfig?.audio?.settings?.noise_suppression ?? false;
+    switchNoiseSuppression.checked = useMobileMediaProfile
+        ? false
+        : (localStorageConfig?.audio?.settings?.noise_suppression ?? false);
+    elemDisplay(noiseSuppressionDiv, !useMobileMediaProfile);
     switchMaxVideoQuality.checked = localStorageConfig.video.settings.best_quality;
     switchKeepAspectRatio.checked = localStorageConfig.video.settings.aspect_ratio;
     if (localStorageConfig.video.init.hide) initHideMeBtn.click();
@@ -1754,8 +1954,10 @@ function replaceOrAddTrack(pc, kind, track, stream) {
     let sender = pc.getSenders().find((s) => s.track && s.track.kind === kind);
     if (sender) {
         sender.replaceTrack(track);
+        tuneSenderEncoding(sender, kind);
     } else if (track) {
-        pc.addTrack(track, stream);
+        sender = pc.addTrack(track, stream);
+        tuneSenderEncoding(sender, kind);
         if (typeof pc.onnegotiationneeded === 'function') pc.onnegotiationneeded();
     }
 }
@@ -2286,7 +2488,20 @@ function stopNoiseProcessor() {
     }
 }
 
+function disableNoiseSuppressionOnMobile() {
+    if (!useMobileMediaProfile) return false;
+    if (noiseProcessor) stopNoiseProcessor();
+    if (localStorageConfig?.audio?.settings?.noise_suppression) {
+        localStorageConfig.audio.settings.noise_suppression = false;
+        LS.setConfig(localStorageConfig);
+    }
+    if (switchNoiseSuppression) switchNoiseSuppression.checked = false;
+    elemDisplay(noiseSuppressionDiv, false);
+    return true;
+}
+
 async function initNoiseProcessor() {
+    if (disableNoiseSuppressionOnMobile()) return;
     if (!noiseProcessor) {
         if (!RNNoiseProcessor.isSupported()) {
             console.warn('RNNoise is not supported on this browser, skipping noise processor initialization');
@@ -2311,6 +2526,7 @@ async function initNoiseProcessor() {
 async function applyNoiseSuppressionToLocalStream(stream) {
     if (!stream || !stream.getAudioTracks().length) return stream;
     if (!RNNoiseProcessor.isSupported()) return stream;
+    if (useMobileMediaProfile) return stream;
     await initNoiseProcessor();
     if (!noiseProcessor?.noiseSuppressionEnabled) return stream;
     try {
@@ -2338,6 +2554,10 @@ async function applyNoiseSuppressionWithLogging(stream, logMessage) {
 }
 
 async function toggleNoiseSuppressionForLocalStream() {
+    if (disableNoiseSuppressionOnMobile()) {
+        console.warn('RNNoise is disabled on mobile/tablet devices to reduce audio latency and CPU load');
+        return;
+    }
     if (!RNNoiseProcessor.isSupported()) {
         console.warn('RNNoise is not supported on this browser');
         return;
