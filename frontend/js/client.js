@@ -1477,7 +1477,8 @@ async function toggleScreenSharing() {
 
             // UI updates...
             if (window.myVideo) {
-                window.myVideo.className = isScreenStreaming ? '' : 'mirror';
+                window.myVideo.className = '';
+                if (!isScreenStreaming) handleCameraMirror(window.myVideo, camera);
                 window.myVideo.style.objectFit =
                     isScreenStreaming || localStorageConfig.video.settings.aspect_ratio ? 'contain' : 'cover';
             }

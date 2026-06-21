@@ -578,6 +578,11 @@ body {
     transform: rotateY(180deg);
 }
 
+video.mobile-front-camera {
+    background: #000;
+    object-fit: contain !important;
+}
+
 video {
     width: 100%;
     height: 100%;

@@ -111,7 +111,9 @@ function detectCameraFacingMode(stream) {
 
 function handleCameraMirror(video, camera) {
     if (!video) return;
-    camera === 'environment' ? video.classList.remove('mirror') : video.classList.add('mirror');
+    const isFrontCamera = camera !== 'environment';
+    video.classList.toggle('mirror', isFrontCamera);
+    video.classList.toggle('mobile-front-camera', useMobileMediaProfile && isFrontCamera);
 }
 
 function hasAudioTrack(mediaStream) {
