@@ -703,6 +703,37 @@ io.sockets.on('connect', (socket) => {
         return false;
     }
 
+    socket.on('kickPeer', (cfg = {}) => {
+        const config = checkXSS(cfg);
+        const peerId = config.peerId;
+
+        if (peerId === socket.id || !peersShareRoom(peerId) || !sockets[peerId]) {
+            log.warn('[' + socket.id + '] kickPeer blocked for [' + peerId + ']');
+            return socket.emit('kickResult', {
+                ok: false,
+                message: 'کاربر موردنظر دیگر در این تماس حضور ندارد.',
+            });
+        }
+
+        let byPeerName = 'کاربر دیگر';
+        for (const channel in socket.channels) {
+            const name = peers[channel]?.[socket.id]?.peerName;
+            if (typeof name === 'string' && name.trim()) {
+                byPeerName = name.trim();
+                break;
+            }
+        }
+
+        const targetSocket = sockets[peerId];
+        targetSocket.emit('kickedOut', { byPeerName: byPeerName });
+        socket.emit('kickResult', { ok: true, peerId: peerId });
+        log.warn('[' + socket.id + '] kicked peer [' + peerId + ']');
+
+        setTimeout(() => {
+            if (targetSocket.connected) targetSocket.disconnect(true);
+        }, 250);
+    });
+
     socket.on('relaySDP', (config) => {
         const { peerId, sessionDescription } = config;
 

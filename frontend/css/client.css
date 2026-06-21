@@ -74,6 +74,11 @@ body {
     pointer-events: auto;
 }
 
+body.session-timer-visible #waitingOverlayTop {
+    top: calc(var(--session-timer-bottom) + 8px);
+    padding-top: 0;
+}
+
 .waiting-status {
     display: flex;
     align-items: center;
@@ -375,6 +380,54 @@ body {
 /*--------------------------------------------------------------
 # Main buttons
 --------------------------------------------------------------*/
+
+#kickPeerBtn {
+    position: fixed;
+    z-index: 7;
+    left: 50%;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: min(88vw, 220px);
+    min-height: 42px;
+    padding: 8px 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 8px;
+    color: #fff;
+    background: #ff4d4d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+    transform: translateX(-50%);
+    cursor: pointer;
+}
+
+#kickPeerBtn:hover {
+    background: #ff4d4d;
+}
+
+#kickPeerBtn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+#kickPeerBtn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+#kickPeerBtn .fa-user-slash {
+    flex: 0 0 auto;
+    background: transparent !important;
+}
+
+#kickPeerName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 #buttonsBar {
     position: fixed;

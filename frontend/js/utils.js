@@ -335,24 +335,11 @@ async function shareRoom() {
 }
 
 function handleBodyEvents() {
-    checkElements();
-    document.body.onmousemove = () => {
-        if (buttonsBar.style.display == 'none' && waitingDivContainer.style.display == 'none') {
-            toggleClassElements('videoHeader', true);
-            elemDisplay(buttonsBar, true, 'flex');
-            animateCSS(buttonsBar, 'fadeInUp');
-        }
-    };
-}
-
-function checkElements() {
-    if (buttonsBar.style.display != 'none') {
-        toggleClassElements('videoHeader', false);
-        animateCSS(buttonsBar, 'fadeOutDown').then((msg) => {
-            elemDisplay(buttonsBar, false);
-        });
+    document.body.onmousemove = null;
+    toggleClassElements('videoHeader', true);
+    if (waitingDivContainer.style.display == 'none') {
+        elemDisplay(buttonsBar, true, 'flex');
     }
-    setTimeout(checkElements, 20000);
 }
 
 function toggleClassElements(className, displayState) {
@@ -398,11 +385,22 @@ function startLimitedSessionTimer(info) {
         return Date.now() - serverOffset;
     }
 
+    function alignWaitingOverlayBelowTimer() {
+        if (!badge || badge.style.display === 'none') return;
+        const timerBottom = Math.ceil(badge.getBoundingClientRect().bottom);
+        document.documentElement.style.setProperty('--session-timer-bottom', `${timerBottom}px`);
+        document.body.classList.add('session-timer-visible');
+    }
+
     function updateDisplay() {
         const remaining = info.end_time - getServerNow();
 
         if (remaining <= 0) {
-            if (badge) { badge.style.display = 'flex'; badge.classList.add('warning'); }
+            if (badge) {
+                badge.style.display = 'flex';
+                badge.classList.add('warning');
+                alignWaitingOverlayBelowTimer();
+            }
             if (badgeValue) badgeValue.textContent = '0:00';
             if (sessionTime) sessionTime.innerText = '0:00';
             clearInterval(tickId);
@@ -424,6 +422,7 @@ function startLimitedSessionTimer(info) {
             } else {
                 badge.classList.remove('warning');
             }
+            alignWaitingOverlayBelowTimer();
         }
     }
 

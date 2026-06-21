@@ -28,6 +28,8 @@ const initChatOpenBtn = document.getElementById('initChatOpenBtn');
 const initSettingsBtn = document.getElementById('initSettingsBtn');
 const initLeaveBtn = document.getElementById('initLeaveBtn');
 const buttonsBar = document.getElementById('buttonsBar');
+const kickPeerBtn = document.getElementById('kickPeerBtn');
+const kickPeerName = document.getElementById('kickPeerName');
 const hideMeBtn = document.getElementById('hideMeBtn');
 const audioBtn = document.getElementById('audioBtn');
 const videoBtn = document.getElementById('videoBtn');
@@ -191,6 +193,7 @@ let thisPeerId;
 let signalingSocket;
 let roomPeersCount = 0;
 let peersInfo = {};
+let kickPeerId = null;
 let peerDevice = {};
 let peerConnections = {};
 let peerMediaElements = {};
@@ -294,6 +297,8 @@ function initClient() {
     signalingSocket.on('sessionDescription', handleSessionDescription);
     signalingSocket.on('iceCandidate', handleIceCandidate);
     signalingSocket.on('peerStatus', handlePeerStatus);
+    signalingSocket.on('kickResult', handleKickResult);
+    signalingSocket.on('kickedOut', handleKickedOut);
     signalingSocket.on('disconnect', handleDisconnect);
     signalingSocket.on('removePeer', handleRemovePeer);
 }
@@ -381,6 +386,7 @@ function handleAddPeer(config) {
 
     elemDisplay(buttonsBar, true, 'flex');
     animateCSS(buttonsBar, 'fadeInUp');
+    showKickPeerButton(peerId);
 
     const peerConnection = new RTCPeerConnection({
         iceServers: iceServers,
@@ -439,6 +445,78 @@ function roomIsBusy() {
             openURL('/');
         }
     });
+}
+
+function getPeerDisplayName(peerId) {
+    const name = peersInfo[peerId]?.peerName;
+    return typeof name === 'string' && name.trim() ? name.trim() : 'کاربر';
+}
+
+function showKickPeerButton(peerId) {
+    kickPeerId = peerId;
+    const name = getPeerDisplayName(peerId);
+    kickPeerName.textContent = `قطع ${name}`;
+    kickPeerBtn.setAttribute('aria-label', `قطع ${name}`);
+    kickPeerBtn.title = `قطع ${name}`;
+    kickPeerBtn.disabled = false;
+    elemDisplay(kickPeerBtn, true, 'flex');
+}
+
+function hideKickPeerButton(peerId = null) {
+    if (peerId && kickPeerId !== peerId) return;
+    kickPeerId = null;
+    kickPeerBtn.disabled = false;
+    elemDisplay(kickPeerBtn, false);
+}
+
+async function requestPeerKick() {
+    if (!kickPeerId || !peerConnections[kickPeerId]) {
+        hideKickPeerButton();
+        return;
+    }
+
+    const peerId = kickPeerId;
+    const name = getPeerDisplayName(peerId);
+    const result = await Swal.fire({
+        allowOutsideClick: false,
+        position: 'center',
+        icon: 'warning',
+        title: `قطع ${name}؟`,
+        text: 'این کاربر از تماس خارج می‌شود.',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4d4d',
+        confirmButtonText: 'قطع',
+        cancelButtonText: 'لغو',
+    });
+
+    if (!result.isConfirmed || kickPeerId !== peerId) return;
+
+    kickPeerBtn.disabled = true;
+    sendToServer('kickPeer', { peerId: peerId });
+}
+
+function handleKickResult(config) {
+    if (config?.ok) return;
+    if (kickPeerId) kickPeerBtn.disabled = false;
+    popupMessage('warning', 'قطع کاربر', config?.message || 'امکان قطع این کاربر وجود ندارد.');
+}
+
+function handleKickedOut(config = {}) {
+    const byPeerName =
+        typeof config.byPeerName === 'string' && config.byPeerName.trim() ? config.byPeerName.trim() : 'کاربر دیگر';
+
+    hideKickPeerButton();
+    signalingSocket.disconnect();
+
+    Swal.fire({
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        position: 'center',
+        icon: 'warning',
+        title: 'از تماس خارج شدید',
+        text: `${byPeerName} شما را از تماس خارج کرد.`,
+        confirmButtonText: 'بازگشت',
+    }).then(() => openURL('/'));
 }
 
 function handlePeersConnectionStatus(peerId) {
@@ -703,6 +781,7 @@ function handleIceCandidate(config) {
 }
 
 function handleDisconnect() {
+    hideKickPeerButton();
     stopMediaStream(localMediaStream);
     localMediaStream = null;
     cleanupPeerConnections();
@@ -718,6 +797,7 @@ function handleRemovePeer(config) {
     delete peerConnections[peerId];
     delete peerMediaElements[peerId];
     delete peersInfo[peerId];
+    hideKickPeerButton(peerId);
     activeMobileMediaProfileName = null;
 
     if (!thereIsPeerConnections()) {
@@ -1196,6 +1276,9 @@ function blobToArrayBuffer(blob) {
 }
 
 function handleEvents() {
+    kickPeerBtn.onclick = () => {
+        requestPeerKick();
+    };
     initLeaveBtn.onclick = () => {
         endCall();
     };
@@ -2076,9 +2159,6 @@ function handleFullScreen(fullScreenBtn, videoWrap, videoMedia) {
             goInFullscreen(videoWrap);
             fullScreenBtn.className = className.fullScreenOff;
         }
-    };
-    videoMedia.onclick = () => {
-        if (isDesktopDevice) fullScreenBtn.click();
     };
 }
 
