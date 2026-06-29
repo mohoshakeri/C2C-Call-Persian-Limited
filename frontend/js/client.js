@@ -1916,12 +1916,22 @@ function giveMeFeedback() {
 
 function redirectToSurvey() {
     signalingSocket.disconnect();
-    surveyURL ? openURL(surveyURL) : openURL('/');
+    surveyURL ? openURL(getSurveyURLWithRoomContext()) : openURL('/');
 }
 
 function redirectOnLeave() {
     signalingSocket.disconnect();
     redirectURL ? openURL(redirectURL) : openURL('/');
+}
+
+function getSurveyURLWithRoomContext() {
+    const url = new URL(surveyURL, window.location.origin);
+    if (sessionInfo && sessionInfo.token) {
+        url.searchParams.set('token', sessionInfo.token);
+    } else if (roomId) {
+        url.searchParams.set('room', roomId);
+    }
+    return url.toString();
 }
 
 function attachMediaStream(element, stream) {
