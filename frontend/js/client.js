@@ -1916,16 +1916,16 @@ function giveMeFeedback() {
 
 function redirectToSurvey() {
     signalingSocket.disconnect();
-    surveyURL ? openURL(getSurveyURLWithRoomContext()) : openURL('/');
+    surveyURL ? openURL(getURLWithRoomContext(surveyURL)) : openURL('/');
 }
 
 function redirectOnLeave() {
     signalingSocket.disconnect();
-    redirectURL ? openURL(redirectURL) : openURL('/');
+    redirectURL ? openURL(getURLWithRoomContext(redirectURL)) : openURL('/');
 }
 
-function getSurveyURLWithRoomContext() {
-    const url = new URL(surveyURL, window.location.origin);
+function getURLWithRoomContext(targetURL) {
+    const url = new URL(targetURL, window.location.origin);
     if (sessionInfo && sessionInfo.token) {
         url.searchParams.set('token', sessionInfo.token);
     } else if (roomId) {
